@@ -1,7 +1,7 @@
 # platformkit
 
 The Go module every platform app imports for the front door, telemetry, the
-browser relay, and the catalog and ledger clients. Read `README.md` first.
+browser relay, and the catalog, ledger, and incident desk clients. Read `README.md` first.
 
 ## Rules
 

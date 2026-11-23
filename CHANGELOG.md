@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0](https://github.com/orchard-suite/platformkit/compare/v2.0.2...v2.1.0) (2026-11-13)
+
+### Features
+
+* **platformkit:** ask and lend through the hub ([e6e444a](https://github.com/orchard-suite/platformkit/commit/e6e444a65d6b58d32e40dcd648900661a2c87989))
+* **platformkit:** add the incident desk client ([c50fbd8](https://github.com/orchard-suite/platformkit/commit/c50fbd8e35e43065ef75f8f10750f32bb6d035fd))
+
 ## [2.0.2](https://github.com/orchard-suite/platformkit/compare/v2.0.1...v2.0.2) (2026-11-12)
 
 ### Bug Fixes

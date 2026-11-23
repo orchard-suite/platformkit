@@ -186,7 +186,15 @@ func (c *Client) RefreshGitSource(ctx context.Context, id string) error {
 }
 
 func (c *Client) do(ctx context.Context, method, path string, in, out any) error {
-	req := request{method: method, path: path, accept: "application/json"}
+	return c.exchange(ctx, request{method: method, path: path, accept: "application/json"}, in, out)
+}
+
+// doOnce is do for a call that must land at most once and may take long.
+func (c *Client) doOnce(ctx context.Context, method, path string, in, out any) error {
+	return c.exchange(ctx, request{method: method, path: path, accept: "application/json", once: true, wait: true}, in, out)
+}
+
+func (c *Client) exchange(ctx context.Context, req request, in, out any) error {
 	if in != nil {
 		var err error
 		if req.body, err = json.Marshal(in); err != nil {
@@ -212,6 +220,11 @@ type request struct {
 	contentType string
 	body        []byte
 	header      http.Header
+	// once sends the call a single time: a call that does something each
+	// time it lands is never sent twice.
+	once bool
+	// wait lets the answer take as long as the caller's context allows.
+	wait bool
 }
 
 // response is a hub answer below 400.
@@ -225,7 +238,16 @@ type response struct {
 // and turns a 4xx answer into an *APIError.
 func (c *Client) send(ctx context.Context, r request) (*response, error) {
 	var last error
-	for attempt := 0; attempt <= c.retries; attempt++ {
+	retries, client := c.retries, c.http
+	if r.once {
+		retries = 0
+	}
+	if r.wait {
+		unhurried := *c.http
+		unhurried.Timeout = 0
+		client = &unhurried
+	}
+	for attempt := 0; attempt <= retries; attempt++ {
 		if attempt > 0 {
 			wait := time.Duration(1<<uint(attempt-1))*time.Second + time.Duration(rand.IntN(500))*time.Millisecond
 			c.log.Warn("orrery request retry", "method", r.method, "path", r.path, "attempt", attempt, "wait", wait, "error", last)
@@ -247,7 +269,7 @@ func (c *Client) send(ctx context.Context, r request) (*response, error) {
 		if r.contentType != "" {
 			req.Header.Set("Content-Type", r.contentType)
 		}
-		res, err := c.http.Do(req)
+		res, err := client.Do(req)
 		if err != nil {
 			last = err
 			continue
@@ -278,7 +300,7 @@ func (c *Client) send(ctx context.Context, r request) (*response, error) {
 		}
 		return &response{status: res.StatusCode, header: res.Header, body: body}, nil
 	}
-	return nil, fmt.Errorf("orrery: giving up after %d attempts: %w", c.retries+1, last)
+	return nil, fmt.Errorf("orrery: giving up after %d attempts: %w", retries+1, last)
 }
 
 // ActionReport is what a backend tells the hub about an action run. Log
@@ -289,6 +311,10 @@ type ActionReport struct {
 	Link    string   `json:"link,omitempty"`
 	Summary string   `json:"summary,omitempty"`
 	Log     []string `json:"log,omitempty"`
+	// Step names the step now under way. Log lines sent with it sit under it.
+	Step string `json:"step,omitempty"`
+	// Outputs are values to show on the run, by name. A nil value removes one.
+	Outputs map[string]any `json:"outputs,omitempty"`
 }
 
 // ReportActionRun reports progress on an action run from a backend such as a

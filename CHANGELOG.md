@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.1.0](https://github.com/orchard-suite/platformkit/compare/v3.0.0...v3.1.0) (2026-11-23)
+
+### Features
+
+* **platformkit:** add the device door ([6a1651f](https://github.com/orchard-suite/platformkit/commit/6a1651fc902e865692bac341fc39136443163e00))
+
 ## [3.0.0](https://github.com/orchard-suite/platformkit/compare/v2.1.0...v3.0.0) (2026-11-23)
 
 ### ⚠ BREAKING CHANGES

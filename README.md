@@ -21,8 +21,8 @@ An app takes a release by its tag:
 go get github.com/orchard-suite/platformkit/v3@vX.Y.Z
 ```
 
-An app that vendors its dependencies commits `vendor/` and builds with
-`-mod=vendor`.
+It comes from Go's module proxy, like any public module. Nothing vendors
+it, and no build needs a key for it (Orchard decision ORC-5001).
 
 ```go
 shutdown, err := telemetry.Setup(ctx, "myapp", version)

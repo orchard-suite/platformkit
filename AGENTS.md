@@ -23,9 +23,9 @@ browser relay, and the catalog, Annals, and incident desk clients. Read `README.
 
 ## Consumers
 
-Every app vendors this module (README, Use). A release here reaches an app
-only when the app bumps it with `go get` and `go mod vendor` and commits
-both.
+Every app takes this module from Go's module proxy by a pinned version,
+and nothing vendors it (README, Use). A release here reaches an app only
+when the app bumps it with `go get` and commits `go.mod` and `go.sum`.
 
 ## Delivery
 

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/orchard-suite/platformkit/door"
+	"github.com/orchard-suite/platformkit/v2/door"
 )
 
 func quiet() *slog.Logger { return slog.New(slog.NewTextHandler(io.Discard, nil)) }

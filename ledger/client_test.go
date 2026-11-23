@@ -65,9 +65,54 @@ func TestClip(t *testing.T) {
 	if got := Clip("a\nb\r\nc"); got != "a b c" {
 		t.Fatalf("%q", got)
 	}
+	ev := Event{Source: "dispatch", Actor: Actor{Kind: "system", ID: "dispatch"}, Action: Action{Verb: "notice.accept", Target: Target{System: "dispatch", Kind: "notice", ID: "7",
+		Title: Clip("Pat@Example.com changed the blueprint")}, Outcome: "ok"}, At: time.Now()}
+	if ev.Action.Target.Title != "[email] changed the blueprint" {
+		t.Fatalf("an email in text is replaced: %q", ev.Action.Target.Title)
+	}
+	if err := ev.Validate("dispatch"); err != nil {
+		t.Fatalf("a clipped title passes the ledger: %v", err)
+	}
 	long := strings.Repeat("é", MaxTitle)
 	got := Clip(long)
 	if len(got) > MaxTitle || !utf8.ValidString(got) {
 		t.Fatalf("%d bytes, valid %v", len(got), utf8.ValidString(got))
+	}
+}
+
+func TestPostBatch(t *testing.T) {
+	var posts [][]map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var batch []map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&batch); err != nil {
+			t.Errorf("not an array: %v", err)
+		}
+		posts = append(posts, batch)
+		res := make([]Receipt, len(batch))
+		for i := range batch {
+			res[i] = Receipt{Index: i, Status: "stored", ID: "01JBX7Y8Z9ABCDEFGHJKMNPQRS"}
+		}
+		json.NewEncoder(w).Encode(map[string]any{"results": res})
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "lg_x", "s")
+	evs := make([]Event, MaxBatch+2)
+	for i := range evs {
+		evs[i] = event()
+	}
+	evs[1].Action.Outcome = "maybe"
+	got, err := c.PostBatch(t.Context(), evs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(posts) != 2 || len(posts[0]) != MaxBatch-1 || len(posts[1]) != 2 {
+		t.Errorf("batches of at most %d, the refused one left out: %d posts", MaxBatch, len(posts))
+	}
+	if got[1].Status != "refused" || got[1].Reason != "bad_outcome" || got[0].Status != "stored" || got[MaxBatch+1].Status != "stored" || got[MaxBatch+1].Index != MaxBatch+1 {
+		t.Errorf("receipts: %+v %+v %+v", got[0], got[1], got[MaxBatch+1])
+	}
+	var nilClient *Client
+	if rs, err := nilClient.PostBatch(t.Context(), evs); err != nil || len(rs) != len(evs) {
+		t.Error("a nil client posts nothing")
 	}
 }

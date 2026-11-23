@@ -2,6 +2,41 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.2](https://github.com/orchard-suite/platformkit/compare/v2.0.1...v2.0.2) (2026-11-12)
+
+### Bug Fixes
+
+* **platformkit:** stamp log lines in utc ([aeda810](https://github.com/orchard-suite/platformkit/commit/aeda8108c0879244bfc356417dcd5a9975e3d39f))
+
+## [2.0.1](https://github.com/orchard-suite/platformkit/compare/v2.0.0...v2.0.1) (2026-11-12)
+
+### Bug Fixes
+
+* **platformkit:** name the module by its v2 path ([35a0e4d](https://github.com/orchard-suite/platformkit/commit/35a0e4dd4124a3c6c087668197717f53ccc84237))
+* **platformkit:** replace emails in clipped text ([1423435](https://github.com/orchard-suite/platformkit/commit/14234358cf19c284bc6be838bb7207d076f5ca57))
+
+## [2.0.0](https://github.com/orchard-suite/platformkit/compare/v1.5.0...v2.0.0) (2026-11-09)
+
+### ⚠ BREAKING CHANGES
+
+* **platformkit:** drop the orrery describer ([e16bba8](https://github.com/orchard-suite/platformkit/commit/e16bba8481da9745b28c3169f0fe1d000d737f01))
+
+### Features
+
+* **platformkit:** drop the orrery describer ([e16bba8](https://github.com/orchard-suite/platformkit/commit/e16bba8481da9745b28c3169f0fe1d000d737f01))
+
+## [1.5.0](https://github.com/orchard-suite/platformkit/compare/v1.4.0...v1.5.0) (2026-11-07)
+
+### Features
+
+* post ledger events in batches ([02c607c](https://github.com/orchard-suite/platformkit/commit/02c607cab428dc82fd69bbd6421ae3b75160e087))
+
+## [1.4.0](https://github.com/orchard-suite/platformkit/compare/v1.3.2...v1.4.0) (2026-11-06)
+
+### Features
+
+* carry parties, items, and causes in events ([296e430](https://github.com/orchard-suite/platformkit/commit/296e43015cf3fce81a7a4123eb2c434618c1fb88))
+
 ## [1.3.2](https://github.com/orchard-suite/platformkit/compare/v1.3.1...v1.3.2) (2026-11-04)
 
 ### Bug Fixes

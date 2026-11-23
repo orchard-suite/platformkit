@@ -17,8 +17,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 
-	"github.com/orchard-suite/platformkit/door"
-	"github.com/orchard-suite/platformkit/telemetry"
+	"github.com/orchard-suite/platformkit/v2/door"
+	"github.com/orchard-suite/platformkit/v2/telemetry"
 )
 
 // MaxBatchBytes caps a batch, per the telemetry standard.

@@ -1,6 +1,7 @@
-// Package ledger is the agent ledger's event contract in Go and a client
-// that posts to it. An event is what an actor did, to what, with what
-// authority, and how it went. The ledger publishes the contract as prose
+// Package ledger is the ledger's event contract in Go and a client
+// that posts to it. An event is what an actor did, to what, with whom,
+// with what authority, and how it went; the ledger keeps each one as a
+// record. The ledger publishes the contract as prose
 // (docs/event.md) and as a JSON Schema (schema/event.json); this package
 // is the same contract, so a sender that validates here is held to the
 // rules the ledger applies.
@@ -29,6 +30,9 @@ type Event struct {
 	Change     *Change           `json:"change,omitempty"`
 	TraceID    string            `json:"trace_id,omitempty"`
 	Corrects   string            `json:"corrects,omitempty"`
+	Cause      string            `json:"cause,omitempty"`
+	Parties    []Party           `json:"parties,omitempty"`
+	Items      []Item            `json:"items,omitempty"`
 	Labels     map[string]string `json:"labels,omitempty"`
 }
 
@@ -36,6 +40,7 @@ type Actor struct {
 	Kind       string `json:"kind"`
 	ID         string `json:"id"`
 	Name       string `json:"name,omitempty"`
+	Email      string `json:"email,omitempty"`
 	OnBehalfOf string `json:"on_behalf_of,omitempty"`
 }
 
@@ -73,6 +78,29 @@ type Target struct {
 	Title  string `json:"title,omitempty"`
 }
 
+// Party is someone or something else in the action besides the actor: who
+// a site was shared with, who was added to a group, who approved.
+type Party struct {
+	Role     string `json:"role"`
+	Kind     string `json:"kind"`
+	ID       string `json:"id,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Name     string `json:"name,omitempty"`
+	External bool   `json:"external,omitempty"`
+}
+
+// Item is a thing the action touched besides its target, such as a file an
+// agent read to answer a prompt. It names the thing, never what is in it.
+type Item struct {
+	System string `json:"system"`
+	Kind   string `json:"kind"`
+	ID     string `json:"id"`
+	Title  string `json:"title,omitempty"`
+	Access string `json:"access,omitempty"`
+	Label  string `json:"label,omitempty"`
+	Hash   string `json:"hash,omitempty"`
+}
+
 type Change struct {
 	BeforeHash string `json:"before_hash,omitempty"`
 	AfterHash  string `json:"after_hash,omitempty"`
@@ -82,21 +110,33 @@ type Change struct {
 // The closed lists. A value outside one is refused.
 var (
 	ActorKinds = []string{"agent", "person", "system"}
-	Runtimes   = []string{"ion", "claude-code", "codex", "other"}
+	Runtimes   = []string{"ion", "claude-code", "codex", "copilot", "other"}
 	Outcomes   = []string{"ok", "refused", "failed"}
+	PartyKinds = []string{"person", "group", "agent", "system", "anyone"}
 )
 
-// Limits keep the ledger a record of shapes and ids, never a dump of values.
+// PersonKind is the target and party kind that names a person. What names
+// a person is shown only to those allowed to see people.
+const PersonKind = "person"
+
+// Limits keep the ledger a record of who did what to what, never a dump of
+// content.
 const (
-	MaxShort    = 256  // ids, names, verbs, kinds, systems, keys
-	MaxTitle    = 512  // target.title, change.summary, action.reason
+	MaxShort    = 256  // ids, names, emails, verbs, kinds, systems, keys
+	MaxTitle    = 512  // titles, change.summary, action.reason
 	MaxLabels   = 16   // labels per event
 	MaxLabelLen = 64   // a label key or value
+	MaxParties  = 50   // parties per event
+	MaxItems    = 100  // items per event
 	MaxBatch    = 1000 // events in one POST
 )
 
 // ulidRe is the 26 Crockford base32 characters of a ULID.
 var ulidRe = regexp.MustCompile(`^[0-7][0-9A-HJKMNP-TV-Z]{25}$`)
+
+// emailRe finds an email address. One belongs only in an email field,
+// where the ledger can hide it from those not allowed to see people.
+var emailRe = regexp.MustCompile(`[^\s@<>"']+@[^\s@<>"']+\.[A-Za-z]{2,}`)
 
 // slugRe is a source, verb, system, kind, runtime, or label key: lowercase
 // words joined by dots, dashes, or underscores.
@@ -147,6 +187,12 @@ func (e *Event) Validate(source string) error {
 	if err := short("trace_id", e.TraceID, false); err != nil {
 		return err
 	}
+	if err := short("cause", e.Cause, false); err != nil {
+		return err
+	}
+	if e.Cause != "" && e.Cause == e.EventKey {
+		return refuse("bad_cause", "an event cannot cause itself")
+	}
 	if err := e.Actor.validate(); err != nil {
 		return err
 	}
@@ -168,6 +214,22 @@ func (e *Event) Validate(source string) error {
 			return err
 		}
 	}
+	if len(e.Parties) > MaxParties {
+		return refuse("too_many_parties", "at most %d parties", MaxParties)
+	}
+	for i := range e.Parties {
+		if err := e.Parties[i].validate(); err != nil {
+			return err
+		}
+	}
+	if len(e.Items) > MaxItems {
+		return refuse("too_many_items", "at most %d items", MaxItems)
+	}
+	for i := range e.Items {
+		if err := e.Items[i].validate(); err != nil {
+			return err
+		}
+	}
 	if len(e.Labels) > MaxLabels {
 		return refuse("too_many_labels", "at most %d labels", MaxLabels)
 	}
@@ -178,8 +240,51 @@ func (e *Event) Validate(source string) error {
 		if len(v) > MaxLabelLen || strings.ContainsAny(v, "\n\r\x00") {
 			return refuse("bad_label", "label %q value must be under %d characters with no control characters", k, MaxLabelLen)
 		}
+		if err := noEmail("labels."+k, v); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+func (p *Party) validate() error {
+	if err := slug("parties.role", p.Role); err != nil {
+		return err
+	}
+	if !oneOf(p.Kind, PartyKinds) {
+		return refuse("bad_party_kind", "parties.kind must be one of %s", strings.Join(PartyKinds, ", "))
+	}
+	if err := short("parties.id", p.ID, p.Kind != "anyone"); err != nil {
+		return err
+	}
+	if err := short("parties.name", p.Name, false); err != nil {
+		return err
+	}
+	return email("parties.email", p.Email)
+}
+
+func (it *Item) validate() error {
+	if err := slug("items.system", it.System); err != nil {
+		return err
+	}
+	if err := slug("items.kind", it.Kind); err != nil {
+		return err
+	}
+	if err := short("items.id", it.ID, true); err != nil {
+		return err
+	}
+	if err := title("items.title", it.Title); err != nil {
+		return err
+	}
+	if it.Access != "" {
+		if err := slug("items.access", it.Access); err != nil {
+			return err
+		}
+	}
+	if err := short("items.label", it.Label, false); err != nil {
+		return err
+	}
+	return short("items.hash", it.Hash, false)
 }
 
 func (a *Actor) validate() error {
@@ -193,6 +298,9 @@ func (a *Actor) validate() error {
 		return err
 	}
 	if err := short("actor.on_behalf_of", a.OnBehalfOf, false); err != nil {
+		return err
+	}
+	if err := email("actor.email", a.Email); err != nil {
 		return err
 	}
 	if a.OnBehalfOf != "" && a.Kind == "person" {
@@ -252,14 +360,14 @@ func (a *Action) validate() error {
 	if err := short("action.target.id", a.Target.ID, true); err != nil {
 		return err
 	}
-	if len(a.Target.Title) > MaxTitle {
-		return refuse("too_long", "action.target.title is over %d characters", MaxTitle)
+	if err := title("action.target.title", a.Target.Title); err != nil {
+		return err
 	}
 	if !oneOf(a.Outcome, Outcomes) {
 		return refuse("bad_outcome", "action.outcome must be one of %s", strings.Join(Outcomes, ", "))
 	}
-	if len(a.Reason) > MaxTitle {
-		return refuse("too_long", "action.reason is over %d characters", MaxTitle)
+	if err := title("action.reason", a.Reason); err != nil {
+		return err
 	}
 	if a.Outcome != "ok" && a.Reason == "" {
 		return refuse("missing_reason", "a %s outcome says why in action.reason", a.Outcome)
@@ -273,8 +381,31 @@ func (c *Change) validate() error {
 			return err
 		}
 	}
-	if len(c.Summary) > MaxTitle {
-		return refuse("too_long", "change.summary is over %d characters", MaxTitle)
+	return title("change.summary", c.Summary)
+}
+
+// title checks free text people read: a title, a summary, or a reason. It
+// holds no email address; a person goes in a person field.
+func title(name, v string) error {
+	if len(v) > MaxTitle {
+		return refuse("too_long", "%s is over %d characters", name, MaxTitle)
+	}
+	return noEmail(name, v)
+}
+
+func noEmail(name, v string) error {
+	if emailRe.MatchString(v) {
+		return refuse("email_in_text", "%s holds an email address; name people in actor, parties, or a person target", name)
+	}
+	return nil
+}
+
+func email(name, v string) error {
+	if err := short(name, v, false); err != nil {
+		return err
+	}
+	if v != "" && !emailRe.MatchString(v) {
+		return refuse("bad_email", "%s must be an email address", name)
 	}
 	return nil
 }

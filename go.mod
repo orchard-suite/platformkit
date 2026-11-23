@@ -1,4 +1,4 @@
-module github.com/orchard-suite/platformkit
+module github.com/orchard-suite/platformkit/v2
 
 go 1.27.3
 

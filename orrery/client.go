@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/orchard-suite/platformkit/telemetry"
+	"github.com/orchard-suite/platformkit/v2/telemetry"
 )
 
 // Entity is one thing to write. Icon names one icon of the hub's icon set for

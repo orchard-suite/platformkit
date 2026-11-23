@@ -2,16 +2,22 @@ name: CI
 
 on:
   pull_request:
-  push:
-    branches: [main]
+  # The release calls this first, so a push to main runs it once.
+  workflow_call:
 
 permissions:
   contents: read
 
+# A newer push to a pull request cancels its older run; a release's call is
+# its own group and is never cancelled.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   check:
     if: ${{ !contains(github.event.head_commit.message, '[skip ci]') }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.RUNS_ON || 'house' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7

@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"strings"
 	"testing"
+	"time"
 
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
@@ -13,6 +15,8 @@ import (
 )
 
 func TestLoggerWritesTheStandardFields(t *testing.T) {
+	defer func(zone *time.Location) { time.Local = zone }(time.Local)
+	time.Local = time.FixedZone("CST", -6*60*60)
 	var buf bytes.Buffer
 	log := NewLogger(&buf, "app", "1.2.3", slog.LevelInfo)
 	ctx, span := sdktrace.NewTracerProvider().Tracer("t").Start(context.Background(), "op")
@@ -28,8 +32,8 @@ func TestLoggerWritesTheStandardFields(t *testing.T) {
 			t.Fatalf("%s = %v, want %v", k, line[k], want)
 		}
 	}
-	if _, ok := line["timestamp"]; !ok {
-		t.Fatal("no timestamp")
+	if ts, _ := line["timestamp"].(string); !strings.HasSuffix(ts, "Z") {
+		t.Fatalf("the timestamp is UTC: %q", ts)
 	}
 }
 

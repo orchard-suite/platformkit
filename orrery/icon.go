@@ -6,31 +6,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path"
-	"regexp"
-	"strings"
 )
-
-// maxIconSize is the largest custom icon the hub takes, in bytes.
-const maxIconSize = 256 << 10
 
 // ErrIconNotFound is the hub's answer for a name that is neither a custom
 // icon nor a built-in brand file.
 var ErrIconNotFound = errors.New("orrery: icon not found")
-
-var iconName = regexp.MustCompile(`^[a-z0-9][a-z0-9_]{0,62}$`)
-
-// iconTypes are the image types the hub takes, by file extension.
-var iconTypes = map[string]string{".svg": "image/svg+xml", ".png": "image/png", ".webp": "image/webp"}
-
-// iconType is the content type of an icon file, from its extension.
-func iconType(file string) (string, error) {
-	t, ok := iconTypes[strings.ToLower(path.Ext(file))]
-	if !ok {
-		return "", fmt.Errorf("icon file %q is not .svg, .png, or .webp", file)
-	}
-	return t, nil
-}
 
 // Image is an icon as the hub serves it.
 type Image struct {

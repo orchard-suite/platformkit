@@ -92,7 +92,9 @@ func NewLogger(w io.Writer, service, version string, level slog.Leveler) *slog.L
 			}
 			switch a.Key {
 			case slog.TimeKey:
-				a.Key = "timestamp"
+				// Logs record UTC whatever the process's zone, which an app may
+				// set for what it shows people.
+				a.Key, a.Value = "timestamp", slog.TimeValue(a.Value.Time().UTC())
 			case slog.LevelKey:
 				a.Value = slog.StringValue(strings.ToLower(a.Value.String()))
 			}

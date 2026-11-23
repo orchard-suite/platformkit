@@ -1,8 +1,10 @@
 package orrery
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,6 +21,7 @@ provides:
     title: Tally costs API
     kind: rest
     description: What things cost.
+    spec: api/openapi.yaml
 consumes: [github/acme/orrery/catalog]
 `
 
@@ -29,6 +32,9 @@ func TestParseDescriptorRefusesWhatTheHubWould(t *testing.T) {
 		"bad kind":     "service: s\nprovides: [{id: a, title: A, kind: soap}]\n",
 		"no api id":    "service: s\nprovides: [{title: A, kind: rest}]\n",
 		"api repeated": "service: s\nprovides: [{id: a, title: A, kind: rest}, {id: a, title: B, kind: rest}]\n",
+		"spec rooted":  "service: github/a/b\nprovides: [{id: a, title: A, kind: rest, spec: /openapi.json}]\n",
+		"spec escapes": "service: github/a/b\nprovides: [{id: a, title: A, kind: rest, spec: ../x.json}]\n",
+		"spec no repo": "service: s\nprovides: [{id: a, title: A, kind: rest, spec: openapi.json}]\n",
 	}
 	for name, doc := range cases {
 		if _, err := ParseDescriptor([]byte(doc)); err == nil {
@@ -55,7 +61,7 @@ func TestDescribePatchesTheServiceAndPutsItsAPIs(t *testing.T) {
 		mu.Lock()
 		writes = append(writes, write{r.Method, r.URL.Path, body})
 		mu.Unlock()
-		if r.URL.Path == "/ingest/blueprints" {
+		if r.URL.Path == "/v1/ingest/blueprints" {
 			json.NewEncoder(w).Encode(map[string]any{"created": []string{}, "extended": []string{"service"}, "kept": []string{"api"}})
 			return
 		}
@@ -73,11 +79,11 @@ func TestDescribePatchesTheServiceAndPutsItsAPIs(t *testing.T) {
 	if len(writes) != 3 {
 		t.Fatalf("got %d writes, want offer, service, api", len(writes))
 	}
-	if writes[0].method != "PUT" || writes[0].path != "/ingest/blueprints" {
+	if writes[0].method != "PUT" || writes[0].path != "/v1/ingest/blueprints" {
 		t.Errorf("first write %s %s, want the blueprint offer", writes[0].method, writes[0].path)
 	}
 	svc := writes[1]
-	if svc.method != "PATCH" || svc.path != "/ingest/entities/sw_service/github/acme/tally/cmd/tally" {
+	if svc.method != "PATCH" || svc.path != "/v1/ingest/entities/sw_service/github/acme/tally/cmd/tally" {
 		t.Errorf("service written with %s %s, want a PATCH so other sources keep their fields", svc.method, svc.path)
 	}
 	rel := svc.body["relations"].(map[string]any)
@@ -91,11 +97,14 @@ func TestDescribePatchesTheServiceAndPutsItsAPIs(t *testing.T) {
 		t.Errorf("service body %v", svc.body)
 	}
 	api := writes[2]
-	if api.method != "PUT" || api.path != "/ingest/entities/sw_api/github/acme/tally/cmd/tally/costs" {
+	if api.method != "PUT" || api.path != "/v1/ingest/entities/sw_api/github/acme/tally/cmd/tally/costs" {
 		t.Errorf("api written with %s %s", api.method, api.path)
 	}
 	if api.body["relations"].(map[string]any)["service"] != "github/acme/tally/cmd/tally" {
 		t.Errorf("api not tied to its service: %v", api.body)
+	}
+	if got := api.body["fields"].(map[string]any)["spec"]; got != "https://github.com/acme/tally/blob/HEAD/api/openapi.yaml" {
+		t.Errorf("spec = %v, want the file's link on the default branch", got)
 	}
 }
 
@@ -123,5 +132,45 @@ func TestDescribeLeavesAnEstatesSchemeAlone(t *testing.T) {
 	svc := d.Entities()[0]
 	if len(svc.Fields) != 1 || len(svc.Relations) != 2 {
 		t.Errorf("placement written: %v %v", svc.Fields, svc.Relations)
+	}
+}
+
+func TestDescriberLogsTheClientsLinesThroughTheAppsLogger(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/v1/ingest/blueprints" {
+			json.NewEncoder(w).Encode(map[string]any{"created": []string{}, "extended": []string{}, "kept": []string{"sw_service", "sw_api"}})
+			return
+		}
+		w.Write([]byte(`{"outcome":"updated"}`))
+	}))
+	defer srv.Close()
+	d, _ := ParseDescriptor([]byte(descriptorYAML))
+	var app bytes.Buffer
+	r, err := NewDescriber(New(srv.URL, "tok", WithRetries(0)), d, "tally", slog.New(slog.NewJSONHandler(&app, nil)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := r.once(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	for _, msg := range []string{"orrery blueprints offered", "orrery described"} {
+		if !strings.Contains(app.String(), `"msg":"`+msg+`"`) {
+			t.Errorf("app log lacks %q:\n%s", msg, app.String())
+		}
+	}
+}
+
+func TestSpecURLPlacesARepositoryFileFromTheRootOnTheDefaultBranch(t *testing.T) {
+	cases := []struct{ service, spec, want string }{
+		{"github/acme/tally/cmd/tally", "openapi.yaml", "https://github.com/acme/tally/blob/HEAD/openapi.yaml"},
+		{"github/acme/mono/apps/web", "apps/web/api/openapi.yaml", "https://github.com/acme/mono/blob/HEAD/apps/web/api/openapi.yaml"},
+		{"internal/billing", "https://billing.example.test/openapi.json", "https://billing.example.test/openapi.json"},
+		{"github/acme/tally", "", ""},
+	}
+	for _, c := range cases {
+		got, err := SpecURL(c.service, c.spec)
+		if err != nil || got != c.want {
+			t.Errorf("SpecURL(%q, %q) = %q, %v; want %q", c.service, c.spec, got, err, c.want)
+		}
 	}
 }

@@ -71,7 +71,7 @@ type OfferResult struct {
 // blueprint it offers; a refused one is an error.
 func (c *Client) OfferBlueprints(ctx context.Context, blueprints []Blueprint) (*OfferResult, error) {
 	var res OfferResult
-	if err := c.do(ctx, http.MethodPut, "/ingest/blueprints", map[string]any{"blueprints": blueprints}, &res); err != nil {
+	if err := c.do(ctx, http.MethodPut, "/v1/ingest/blueprints", map[string]any{"blueprints": blueprints}, &res); err != nil {
 		return nil, err
 	}
 	c.log.Info("orrery blueprints offered", "created", res.Created, "extended", res.Extended, "kept", res.Kept, "rejected", len(res.Rejected))
@@ -90,5 +90,5 @@ type Action map[string]any
 // actions this way when it starts, so a button in the hub is a declaration
 // the product owns. The token's role must hold actions.manage.
 func (c *Client) PutAction(ctx context.Context, id string, action Action) error {
-	return c.do(ctx, http.MethodPut, "/api/actions/"+url.PathEscape(id), action, nil)
+	return c.do(ctx, http.MethodPut, "/v1/actions/"+url.PathEscape(id), action, nil)
 }

@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.2](https://github.com/orchard-suite/platformkit/compare/v1.3.1...v1.3.2) (2026-11-04)
+
+### Bug Fixes
+
+* call orrery under /v1 ([5fba563](https://github.com/orchard-suite/platformkit/commit/5fba563c6f42f4c6a564ea36f5321a09989fe414))
+
+## [1.3.1](https://github.com/orchard-suite/platformkit/compare/v1.3.0...v1.3.1) (2026-11-04)
+
+### Bug Fixes
+
+* read an api's spec from the repository root ([45d5238](https://github.com/orchard-suite/platformkit/commit/45d5238ad151bb37647b86a3de8f16b1965a8556))
+
+## [1.3.0](https://github.com/orchard-suite/platformkit/compare/v1.2.0...v1.3.0) (2026-11-04)
+
+### Features
+
+* describe where an api's definition lives ([5134bd3](https://github.com/orchard-suite/platformkit/commit/5134bd35b52c11e53827a5414d71f06c9fe9abd8))
+
+## [1.2.0](https://github.com/orchard-suite/platformkit/compare/v1.1.0...v1.2.0) (2026-11-04)
+
+### Features
+
+* read an icon drawn for a theme ([8aaf7da](https://github.com/orchard-suite/platformkit/commit/8aaf7daf05566b3a0bf6fca362b45d4e76fe378e))
+
+## [1.1.0](https://github.com/orchard-suite/platformkit/compare/v1.0.1...v1.1.0) (2026-11-04)
+
+### Features
+
+* describe an app's logo as an orrery icon ([be798a5](https://github.com/orchard-suite/platformkit/commit/be798a5d5c5e07e0669db4561112bedf7353a3ac))
+
+## [1.0.1](https://github.com/orchard-suite/platformkit/compare/v1.0.0...v1.0.1) (2026-11-02)
+
+### Bug Fixes
+
+* log describe through the app's logger ([ced6751](https://github.com/orchard-suite/platformkit/commit/ced675115024d0fab4f7702612047878ec5247b3))
+
 ## [1.0.0](https://github.com/orchard-suite/platformkit/compare/v0.0.7...v1.0.0) (2026-11-02)
 
 ### ⚠ BREAKING CHANGES

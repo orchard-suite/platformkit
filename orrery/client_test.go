@@ -17,9 +17,9 @@ func TestRunBatchesAndCommits(t *testing.T) {
 			return
 		}
 		switch {
-		case r.Method == "POST" && r.URL.Path == "/ingest/runs":
+		case r.Method == "POST" && r.URL.Path == "/v1/ingest/runs":
 			json.NewEncoder(w).Encode(map[string]string{"id": "r1"})
-		case r.Method == "PUT" && r.URL.Path == "/ingest/runs/r1/entities":
+		case r.Method == "PUT" && r.URL.Path == "/v1/ingest/runs/r1/entities":
 			var body struct {
 				Entities []Entity `json:"entities"`
 			}
@@ -29,7 +29,7 @@ func TestRunBatchesAndCommits(t *testing.T) {
 				t.Errorf("batch too large: %d", len(body.Entities))
 			}
 			json.NewEncoder(w).Encode(map[string]any{"accepted": len(body.Entities), "rejected": []WriteError{{Blueprint: "x", Key: "bad", Reason: "nope"}}})
-		case r.Method == "POST" && r.URL.Path == "/ingest/runs/r1/commit":
+		case r.Method == "POST" && r.URL.Path == "/v1/ingest/runs/r1/commit":
 			commits.Add(1)
 			json.NewEncoder(w).Encode(RunResult{ID: "r1", State: "committed", Counts: RunCounts{Created: 5}})
 		default:
@@ -58,12 +58,12 @@ func TestSnapshotFailsRunOnError(t *testing.T) {
 	var failed atomic.Bool
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/ingest/runs":
+		case "/v1/ingest/runs":
 			json.NewEncoder(w).Encode(map[string]string{"id": "r2"})
-		case "/ingest/runs/r2/fail":
+		case "/v1/ingest/runs/r2/fail":
 			failed.Store(true)
 			w.Write([]byte(`{}`))
-		case "/ingest/runs/r2/commit":
+		case "/v1/ingest/runs/r2/commit":
 			t.Error("commit must not be called")
 		default:
 			w.Write([]byte(`{}`))
@@ -87,7 +87,7 @@ func TestRetriesOn5xxNotOn4xx(t *testing.T) {
 			w.WriteHeader(503)
 			return
 		}
-		if r.URL.Path == "/ingest/entities/x/bad" {
+		if r.URL.Path == "/v1/ingest/entities/x/bad" {
 			w.WriteHeader(422)
 			w.Write([]byte(`{"error":"rejected","errors":[{"blueprint":"x","key":"bad","field":"f","reason":"expected a number"}]}`))
 			return
@@ -126,7 +126,7 @@ func TestPutAction(t *testing.T) {
 	if err := c.PutAction(context.Background(), "build app", Action{"title": "Build"}); err != nil {
 		t.Fatal(err)
 	}
-	if path != "PUT /api/actions/build app" || got["title"] != "Build" {
+	if path != "PUT /v1/actions/build app" || got["title"] != "Build" {
 		t.Fatalf("%s %v", path, got)
 	}
 }

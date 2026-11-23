@@ -135,7 +135,7 @@ func (c *Client) Entities(ctx context.Context, q Query) ([]Record, error) {
 			Entities []Record `json:"entities"`
 			Total    int      `json:"total"`
 		}
-		if err := c.do(ctx, http.MethodGet, "/api/entities?"+v.Encode(), nil, &page); err != nil {
+		if err := c.do(ctx, http.MethodGet, "/v1/entities?"+v.Encode(), nil, &page); err != nil {
 			return nil, fmt.Errorf("%s: %w", q.Blueprint, err)
 		}
 		all = append(all, page.Entities...)
@@ -164,7 +164,7 @@ func (c *Client) ActionsFor(ctx context.Context, email string) ([]ActionSummary,
 	var res struct {
 		Actions []ActionSummary `json:"actions"`
 	}
-	if err := c.do(ctx, http.MethodGet, "/api/actions?"+url.Values{"for": {email}}.Encode(), nil, &res); err != nil {
+	if err := c.do(ctx, http.MethodGet, "/v1/actions?"+url.Values{"for": {email}}.Encode(), nil, &res); err != nil {
 		return nil, err
 	}
 	return res.Actions, nil

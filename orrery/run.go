@@ -84,7 +84,7 @@ func (c *Client) OpenRun(ctx context.Context, mode RunMode, scope string, opts .
 	var res struct {
 		ID string `json:"id"`
 	}
-	if err := c.do(ctx, http.MethodPost, "/ingest/runs", map[string]string{"mode": string(mode), "scope": scope, "write": o.write}, &res); err != nil {
+	if err := c.do(ctx, http.MethodPost, "/v1/ingest/runs", map[string]string{"mode": string(mode), "scope": scope, "write": o.write}, &res); err != nil {
 		return nil, err
 	}
 	c.log.Info("orrery run opened", "run", res.ID, "mode", mode, "scope", scope)
@@ -113,7 +113,7 @@ func (r *Run) Flush(ctx context.Context) error {
 		Accepted int          `json:"accepted"`
 		Rejected []WriteError `json:"rejected"`
 	}
-	if err := r.client.do(ctx, http.MethodPut, "/ingest/runs/"+url.PathEscape(r.ID)+"/entities", body, &res); err != nil {
+	if err := r.client.do(ctx, http.MethodPut, "/v1/ingest/runs/"+url.PathEscape(r.ID)+"/entities", body, &res); err != nil {
 		return err
 	}
 	r.sent += len(r.buffer)
@@ -135,7 +135,7 @@ func (r *Run) Commit(ctx context.Context) (*RunResult, error) {
 		return nil, err
 	}
 	var res RunResult
-	if err := r.client.do(ctx, http.MethodPost, "/ingest/runs/"+url.PathEscape(r.ID)+"/commit", nil, &res); err != nil {
+	if err := r.client.do(ctx, http.MethodPost, "/v1/ingest/runs/"+url.PathEscape(r.ID)+"/commit", nil, &res); err != nil {
 		return nil, err
 	}
 	r.client.log.Info("orrery run committed", "run", r.ID, "scope", r.Scope, "sent", r.sent, "created", res.Counts.Created, "updated", res.Counts.Updated, "unchanged", res.Counts.Unchanged, "rejected", res.Counts.Rejected, "missing", res.Counts.Missing, "deleted", res.Counts.Deleted, "massDrop", res.MassDrop)
@@ -145,7 +145,7 @@ func (r *Run) Commit(ctx context.Context) (*RunResult, error) {
 // Fail closes the run without committing. Nothing is deleted.
 func (r *Run) Fail(ctx context.Context, reason string) error {
 	r.client.log.Warn("orrery run failed", "run", r.ID, "reason", reason)
-	return r.client.do(ctx, http.MethodPost, "/ingest/runs/"+url.PathEscape(r.ID)+"/fail", map[string]string{"reason": reason}, nil)
+	return r.client.do(ctx, http.MethodPost, "/v1/ingest/runs/"+url.PathEscape(r.ID)+"/fail", map[string]string{"reason": reason}, nil)
 }
 
 // Snapshot runs fn inside a snapshot of scope and commits it. If fn returns

@@ -120,7 +120,7 @@ func FromEnv(opts ...Option) (*Client, error) {
 
 // Heartbeat marks the source alive without opening a run.
 func (c *Client) Heartbeat(ctx context.Context) error {
-	return c.do(ctx, http.MethodPost, "/ingest/heartbeat", nil, nil)
+	return c.do(ctx, http.MethodPost, "/v1/ingest/heartbeat", nil, nil)
 }
 
 // WriteOption tunes a single-entity write.
@@ -163,13 +163,13 @@ func (c *Client) write(ctx context.Context, method string, e Entity, opts []Writ
 	for _, o := range opts {
 		o(&body)
 	}
-	return c.do(ctx, method, "/ingest/entities/"+url.PathEscape(e.Blueprint)+"/"+url.PathEscape(e.Key), body, nil)
+	return c.do(ctx, method, "/v1/ingest/entities/"+url.PathEscape(e.Blueprint)+"/"+url.PathEscape(e.Key), body, nil)
 }
 
 // Delete removes an entity now. The source needs a delete grant for the
 // blueprint; the hub blocks re-creation from snapshots for a short window.
 func (c *Client) Delete(ctx context.Context, blueprint, key string) error {
-	return c.do(ctx, http.MethodDelete, "/ingest/entities/"+url.PathEscape(blueprint)+"/"+url.PathEscape(key), nil, nil)
+	return c.do(ctx, http.MethodDelete, "/v1/ingest/entities/"+url.PathEscape(blueprint)+"/"+url.PathEscape(key), nil, nil)
 }
 
 // Call sends one request to the hub's machine surface and decodes the JSON
@@ -182,36 +182,70 @@ func (c *Client) Call(ctx context.Context, method, path string, in, out any) err
 // RefreshGitSource asks the hub to pull a git source now. The token must
 // belong to that source.
 func (c *Client) RefreshGitSource(ctx context.Context, id string) error {
-	return c.do(ctx, http.MethodPost, "/ingest/sources/"+url.PathEscape(id)+"/refresh", nil, nil)
+	return c.do(ctx, http.MethodPost, "/v1/ingest/sources/"+url.PathEscape(id)+"/refresh", nil, nil)
 }
 
 func (c *Client) do(ctx context.Context, method, path string, in, out any) error {
-	var payload []byte
+	req := request{method: method, path: path, accept: "application/json"}
 	if in != nil {
 		var err error
-		if payload, err = json.Marshal(in); err != nil {
+		if req.body, err = json.Marshal(in); err != nil {
 			return err
 		}
+		req.contentType = "application/json"
 	}
+	res, err := c.send(ctx, req)
+	if err != nil {
+		return err
+	}
+	if out != nil && len(res.body) > 0 {
+		return json.Unmarshal(res.body, out)
+	}
+	return nil
+}
+
+// request is one call to the hub, whatever its body.
+type request struct {
+	method      string
+	path        string
+	accept      string
+	contentType string
+	body        []byte
+	header      http.Header
+}
+
+// response is a hub answer below 400.
+type response struct {
+	status int
+	header http.Header
+	body   []byte
+}
+
+// send makes one call to the hub, retrying network errors and 5xx answers,
+// and turns a 4xx answer into an *APIError.
+func (c *Client) send(ctx context.Context, r request) (*response, error) {
 	var last error
 	for attempt := 0; attempt <= c.retries; attempt++ {
 		if attempt > 0 {
 			wait := time.Duration(1<<uint(attempt-1))*time.Second + time.Duration(rand.IntN(500))*time.Millisecond
-			c.log.Warn("orrery request retry", "method", method, "path", path, "attempt", attempt, "wait", wait, "error", last)
+			c.log.Warn("orrery request retry", "method", r.method, "path", r.path, "attempt", attempt, "wait", wait, "error", last)
 			select {
 			case <-ctx.Done():
-				return ctx.Err()
+				return nil, ctx.Err()
 			case <-time.After(wait):
 			}
 		}
-		req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, bytes.NewReader(payload))
+		req, err := http.NewRequestWithContext(ctx, r.method, c.baseURL+r.path, bytes.NewReader(r.body))
 		if err != nil {
-			return err
+			return nil, err
+		}
+		for k, v := range r.header {
+			req.Header[k] = v
 		}
 		req.Header.Set("Authorization", "Bearer "+c.token)
-		req.Header.Set("Accept", "application/json")
-		if payload != nil {
-			req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", r.accept)
+		if r.contentType != "" {
+			req.Header.Set("Content-Type", r.contentType)
 		}
 		res, err := c.http.Do(req)
 		if err != nil {
@@ -240,14 +274,11 @@ func (c *Client) do(ctx context.Context, method, path string, in, out any) error
 			} else {
 				apiErr.Message = strings.TrimSpace(string(body))
 			}
-			return apiErr
+			return nil, apiErr
 		}
-		if out != nil && len(body) > 0 {
-			return json.Unmarshal(body, out)
-		}
-		return nil
+		return &response{status: res.StatusCode, header: res.Header, body: body}, nil
 	}
-	return fmt.Errorf("orrery: giving up after %d attempts: %w", c.retries+1, last)
+	return nil, fmt.Errorf("orrery: giving up after %d attempts: %w", c.retries+1, last)
 }
 
 // ActionReport is what a backend tells the hub about an action run. Log
@@ -264,5 +295,5 @@ type ActionReport struct {
 // workflow or a webhook target. The token is an access token whose role holds
 // actions.report.
 func (c *Client) ReportActionRun(ctx context.Context, runID string, report ActionReport) error {
-	return c.do(ctx, http.MethodPost, "/api/action-runs/"+url.PathEscape(runID)+"/report", report, nil)
+	return c.do(ctx, http.MethodPost, "/v1/action-runs/"+url.PathEscape(runID)+"/report", report, nil)
 }

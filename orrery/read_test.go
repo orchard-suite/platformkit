@@ -12,7 +12,7 @@ import (
 func TestEntitiesPagesAndFilters(t *testing.T) {
 	var filters []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("Authorization") != "Bearer t" || r.URL.Path != "/api/entities" {
+		if r.Header.Get("Authorization") != "Bearer t" || r.URL.Path != "/v1/entities" {
 			http.Error(w, "no", http.StatusUnauthorized)
 			return
 		}
@@ -57,7 +57,7 @@ func TestEntitiesPagesAndFilters(t *testing.T) {
 
 func TestActionsFor(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/actions" || r.URL.Query().Get("for") != "a+b@example.com" {
+		if r.URL.Path != "/v1/actions" || r.URL.Query().Get("for") != "a+b@example.com" {
 			http.Error(w, "no", http.StatusBadRequest)
 			return
 		}

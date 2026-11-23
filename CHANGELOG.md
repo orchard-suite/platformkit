@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0](https://github.com/orchard-suite/platformkit/compare/v2.1.0...v3.0.0) (2026-11-23)
+
+### ⚠ BREAKING CHANGES
+
+* **platformkit:** name the audit client annals ([dbbcca6](https://github.com/orchard-suite/platformkit/commit/dbbcca6dc054988d6a91ad96374e93e4bbf9d6f6))
+
+### Features
+
+* **platformkit:** name the audit client annals ([dbbcca6](https://github.com/orchard-suite/platformkit/commit/dbbcca6dc054988d6a91ad96374e93e4bbf9d6f6))
+
 ## [2.1.0](https://github.com/orchard-suite/platformkit/compare/v2.0.2...v2.1.0) (2026-11-13)
 
 ### Features

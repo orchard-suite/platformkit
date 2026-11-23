@@ -11,5 +11,5 @@ check:
 test:
 	go test ./...
 
-land:
+land: check
 	release-damnit land

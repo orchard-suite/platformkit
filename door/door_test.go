@@ -46,7 +46,7 @@ func TestGateRefusesWithoutIdentityOrRole(t *testing.T) {
 	if rec, _ := serve(t, g, map[string]string{HeaderEmail: "a@example.com", HeaderGroups: "Reader"}); rec.Code != http.StatusForbidden {
 		t.Fatalf("no role: %d", rec.Code)
 	}
-	if rec, _ := serve(t, g, map[string]string{HeaderEmail: "a@example.com", HeaderGroups: "ledger.Admin"}); rec.Code != http.StatusForbidden {
+	if rec, _ := serve(t, g, map[string]string{HeaderEmail: "a@example.com", HeaderGroups: "annals.Admin"}); rec.Code != http.StatusForbidden {
 		t.Fatalf("a prefixed role is not the role: %d", rec.Code)
 	}
 }
@@ -59,7 +59,7 @@ func TestGateWithoutRolesAdmitsAnyoneSignedIn(t *testing.T) {
 }
 
 func TestNewGateRefusesPrefixedRole(t *testing.T) {
-	for _, role := range []string{"ledger.Admin", "", "A,B", "Some Role"} {
+	for _, role := range []string{"annals.Admin", "", "A,B", "Some Role"} {
 		if _, err := NewGate(quiet(), role); err == nil {
 			t.Fatalf("%q was accepted", role)
 		}

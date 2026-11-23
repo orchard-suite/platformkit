@@ -5,26 +5,23 @@ once and holds everywhere. A Go module of six packages:
 
 | Package | What it does |
 | --- | --- |
-| `door` | Reads the person the front door signed in (`X-Forwarded-Email`, `X-Forwarded-Groups`) and gates each route on the app's roles. A role is the bare role: the door sends `Admin` for the app role `ledger.Admin`, and `NewGate` refuses a role with the app's part still on it. Also `SameOrigin` for changes. |
+| `door` | Reads the person the front door signed in (`X-Forwarded-Email`, `X-Forwarded-Groups`) and gates each route on the app's roles. A role is the bare role: the door sends `Admin` for the app role `annals.Admin`, and `NewGate` refuses a role with the app's part still on it. Also `SameOrigin` for changes. |
 | `telemetry` | The telemetry standard in one call: `Setup` installs OTLP traces and metrics when `OTEL_EXPORTER_OTLP_ENDPOINT` is set, `<service>.build_info`, and `process.cpu.time` and `process.memory.usage`. `NewLogger` writes JSON lines with `trace_id`. `Handler` serves a port with a span and `http.server.request.duration` per route; `Client` makes outbound calls client spans. |
 | `faro` | The browser relay, `POST /api/telemetry`: caps a batch at 256 KB, names the app `<service>-web`, stamps the person a gate admitted or removes any user, relays with the key, and counts `<service>.browser.batches` by outcome. |
 | `orrery` | The catalog hub's client for apps, pushers, runners, and shell jobs: paged reads with filters and typed field readers (`Record`), writes with retries (`Put`, `Patch`, `Delete`), snapshot and incremental runs, blueprint offers, catalog files, heartbeats, action run reports, and custom icons (`PutIcon`, `Icon`). For a product that works for people: `RunAction` asks for a run in a person's name, `TargetsFor` reads where a person may ask, and `Tools` and `CallTool` list and call lent tools; a tool call is sent once and waits as long as its context allows. An app does not describe itself through it: redgreen reads each repository's `orrery.yaml` and writes the service. |
-| `ledger` | The ledger's event contract in Go (types, limits, `Validate`) and a client that validates before it posts. A nil client posts nothing. |
+| `annals` | Annals' event contract in Go (types, limits, `Validate`) and a client that validates before it posts. A nil client posts nothing. |
 | `dispatch` | The incident desk's client for a product: `Send` an event to people, groups, or chains, `DeclareKinds` so people can choose how each kind reaches them, `RecordChange`, `Heartbeat`, `OpenIncidents`, `OpenIncident`, and `OnCall`. A nil client sends and reads nothing. |
 
 ## Use
 
-The module is private. An app vendors it, so its CI and image build need no
-access to this repository:
+An app takes a release by its tag:
 
 ```bash
-GOPRIVATE=github.com/dsswift/* go get github.com/orchard-suite/platformkit/v2@vX.Y.Z
-go mod vendor
+go get github.com/orchard-suite/platformkit/v3@vX.Y.Z
 ```
 
-Commit `vendor/`. The image build copies it and builds with `-mod=vendor`;
-it never runs `go mod download`.
-
+An app that vendors its dependencies commits `vendor/` and builds with
+`-mod=vendor`.
 
 ```go
 shutdown, err := telemetry.Setup(ctx, "myapp", version)

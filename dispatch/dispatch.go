@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/orchard-suite/platformkit/v2/telemetry"
+	"github.com/orchard-suite/platformkit/v3/telemetry"
 )
 
 // Weight is how hard an event pushes on the people it reaches.

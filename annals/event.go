@@ -1,11 +1,11 @@
-// Package ledger is the ledger's event contract in Go and a client
+// Package annals is Annals' event contract in Go and a client
 // that posts to it. An event is what an actor did, to what, with whom,
-// with what authority, and how it went; the ledger keeps each one as a
-// record. The ledger publishes the contract as prose
+// with what authority, and how it went; Annals keeps each one as a
+// record. Annals publishes the contract as prose
 // (docs/event.md) and as a JSON Schema (schema/event.json); this package
 // is the same contract, so a sender that validates here is held to the
-// rules the ledger applies.
-package ledger
+// rules Annals applies.
+package annals
 
 import (
 	"errors"
@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-// Event is one thing an actor did. ID and ReceivedAt are the ledger's; a
+// Event is one thing an actor did. ID and ReceivedAt are Annals'; a
 // sender fills the rest.
 type Event struct {
 	ID         string            `json:"id,omitempty"`
@@ -119,7 +119,7 @@ var (
 // a person is shown only to those allowed to see people.
 const PersonKind = "person"
 
-// Limits keep the ledger a record of who did what to what, never a dump of
+// Limits keep Annals a record of who did what to what, never a dump of
 // content.
 const (
 	MaxShort    = 256  // ids, names, emails, verbs, kinds, systems, keys
@@ -135,7 +135,7 @@ const (
 var ulidRe = regexp.MustCompile(`^[0-7][0-9A-HJKMNP-TV-Z]{25}$`)
 
 // emailRe finds an email address. One belongs only in an email field,
-// where the ledger can hide it from those not allowed to see people.
+// where Annals can hide it from those not allowed to see people.
 var emailRe = regexp.MustCompile(`[^\s@<>"']+@[^\s@<>"']+\.[A-Za-z]{2,}`)
 
 // slugRe is a source, verb, system, kind, runtime, or label key: lowercase
@@ -176,7 +176,7 @@ func (e *Event) Validate(source string) error {
 		return refuse("missing_at", "at is required, RFC 3339")
 	}
 	if e.ID != "" {
-		return refuse("id_set", "id is assigned by the ledger")
+		return refuse("id_set", "id is assigned by Annals")
 	}
 	if e.Corrects != "" && !ulidRe.MatchString(e.Corrects) {
 		return refuse("bad_corrects", "corrects must be the ULID of an earlier event")

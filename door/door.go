@@ -4,7 +4,7 @@
 // app trusts them only on a port its network policy keeps to Traefik.
 //
 // A role is an app role named `<app>.<Role>` on the door's sign-in
-// registration. The door strips the app's part: `ledger.Admin` arrives as
+// registration. The door strips the app's part: `annals.Admin` arrives as
 // `Admin`. A gate is configured with the bare role, and NewGate refuses a
 // role with the app's part still on it.
 package door
@@ -86,11 +86,11 @@ type Gate struct {
 
 // NewGate makes a gate that admits a person holding any of roles; with no
 // roles it admits anyone the door signed in. A role carrying the app's part
-// (`ledger.Admin`) is an error, because the door never sends one.
+// (`annals.Admin`) is an error, because the door never sends one.
 func NewGate(log *slog.Logger, roles ...string) (*Gate, error) {
 	for _, role := range roles {
 		if role == "" || strings.ContainsAny(role, ". ,") {
-			return nil, fmt.Errorf("door: role %q must be the bare role, such as Admin for the app role ledger.Admin", role)
+			return nil, fmt.Errorf("door: role %q must be the bare role, such as Admin for the app role annals.Admin", role)
 		}
 	}
 	return &Gate{roles: roles, log: log}, nil
@@ -128,7 +128,7 @@ func (g *Gate) refuse(w http.ResponseWriter, r *http.Request, status int, messag
 }
 
 // SameOrigin admits a change only from the app's own pages, origin being
-// its public origin such as https://ledger.example.org. Sibling hosts of one
+// its public origin such as https://annals.example.org. Sibling hosts of one
 // site share cookies, so a cookie alone cannot tell them apart.
 func SameOrigin(origin string, log *slog.Logger, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

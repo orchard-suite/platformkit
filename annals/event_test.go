@@ -1,11 +1,11 @@
-package ledger
+package annals
 
 import (
 	"testing"
 	"time"
 )
 
-// Rules the schema cannot state are the validator's alone. The ledger's own
+// Rules the schema cannot state are the validator's alone. Annals' own
 // tests hold the validator to its JSON Schema on every worked example.
 func TestValidatorOnlyRules(t *testing.T) {
 	good := func() Event {
@@ -40,7 +40,7 @@ func TestValidatorOnlyRules(t *testing.T) {
 	ev = good()
 	ev.ID = "01JBX7Y8Z9ABCDEFGHJKMNPQRS"
 	if Reason(ev.Validate("ion")) != "id_set" {
-		t.Error("the ledger assigns ids")
+		t.Error("Annals assigns ids")
 	}
 	ev = good()
 	ev.Corrects = "not-a-ulid"
@@ -55,7 +55,7 @@ func TestValidatorOnlyRules(t *testing.T) {
 	}
 }
 
-// People belong in person fields, where the ledger can hide them from those
+// People belong in person fields, where Annals can hide them from those
 // not allowed to see people. Free text never holds an email address.
 func TestPeopleOnlyInPersonFields(t *testing.T) {
 	good := func() Event {

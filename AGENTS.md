@@ -1,7 +1,7 @@
 # platformkit
 
 The Go module every platform app imports for the front door, telemetry, the
-browser relay, and the catalog, ledger, and incident desk clients. Read `README.md` first.
+browser relay, and the catalog, Annals, and incident desk clients. Read `README.md` first.
 
 ## Rules
 
@@ -14,8 +14,8 @@ browser relay, and the catalog, ledger, and incident desk clients. Read `README.
   attributes stay low-cardinality: never a person, an id, or a path.
 - Never log a person's email or a token. Log both branches of a decision
   about who is let in.
-- `ledger/event.go` is the ledger's contract. Its limits and reasons change
-  only together with the ledger's published schema.
+- `annals/event.go` is Annals' contract. Its limits and reasons change
+  only together with Annals' published schema.
 - Tests are focused and need no network. No real names or emails in them.
 - No em dashes or en dashes in prose.
 - `VERSION` is the version of record; never edit it, the manifest, or

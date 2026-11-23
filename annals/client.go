@@ -1,4 +1,4 @@
-package ledger
+package annals
 
 import (
 	"bytes"
@@ -11,10 +11,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/orchard-suite/platformkit/v2/telemetry"
+	"github.com/orchard-suite/platformkit/v3/telemetry"
 )
 
-// Receipt is the ledger's answer for one event: stored, duplicate, or
+// Receipt is Annals' answer for one event: stored, duplicate, or
 // refused with a reason.
 type Receipt struct {
 	Index     int    `json:"index"`
@@ -26,8 +26,8 @@ type Receipt struct {
 	Duplicate bool   `json:"duplicate,omitempty"`
 }
 
-// Client posts one source's events to one ledger. A nil Client posts
-// nothing, so a product without a ledger calls it like any other.
+// Client posts one source's events to one Annals. A nil Client posts
+// nothing, so a product without Annals calls it like any other.
 type Client struct {
 	url    string
 	token  string
@@ -35,7 +35,7 @@ type Client struct {
 	http   *http.Client
 }
 
-// New returns a client for the ledger's API at url (its token port), or
+// New returns a client for Annals' API at url (its token port), or
 // nil when url or token is empty. source is the source the token was
 // issued for.
 func New(url, token, source string) *Client {
@@ -45,10 +45,10 @@ func New(url, token, source string) *Client {
 	return &Client{url: strings.TrimRight(url, "/"), token: token, source: source, http: telemetry.Client(10 * time.Second)}
 }
 
-// Post sends one event. It returns nil when the ledger stored it or
+// Post sends one event. It returns nil when Annals stored it or
 // already had it. An event that breaks the contract is refused before it
-// is sent, and one the ledger refuses comes back as an *ErrInvalid with
-// the ledger's reason; posting either again would not help.
+// is sent, and one Annals refuses comes back as an *ErrInvalid with
+// Annals' reason; posting either again would not help.
 func (c *Client) Post(ctx context.Context, ev Event) error {
 	if c == nil {
 		return nil
@@ -77,7 +77,7 @@ func (c *Client) Post(ctx context.Context, ev Event) error {
 	case res.StatusCode == http.StatusUnprocessableEntity:
 		return &ErrInvalid{Reason: rc.Reason, Detail: rc.Error}
 	case res.StatusCode >= 300:
-		return fmt.Errorf("ledger answered %d %s", res.StatusCode, rc.Error)
+		return fmt.Errorf("annals answered %d %s", res.StatusCode, rc.Error)
 	}
 	return nil
 }
@@ -144,13 +144,13 @@ func (c *Client) postArray(ctx context.Context, evs []Event) ([]Receipt, error) 
 	}
 	_ = json.NewDecoder(io.LimitReader(res.Body, 8<<20)).Decode(&answer)
 	if res.StatusCode >= 300 {
-		return nil, fmt.Errorf("ledger answered %d %s", res.StatusCode, answer.Error)
+		return nil, fmt.Errorf("annals answered %d %s", res.StatusCode, answer.Error)
 	}
 	return answer.Results, nil
 }
 
 // Clip makes text fit a title, a summary, or a reason: one line, within the
-// ledger's limit in bytes, and each email address in it replaced by
+// Annals' limit in bytes, and each email address in it replaced by
 // [email], since a person belongs only in a person field. It never cuts a
 // character in half.
 func Clip(s string) string {

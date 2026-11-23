@@ -1,4 +1,4 @@
-package ledger
+package annals
 
 import (
 	"encoding/json"
@@ -57,7 +57,7 @@ func TestPost(t *testing.T) {
 func TestNilClientPostsNothing(t *testing.T) {
 	var c *Client = New("", "t", "s")
 	if c != nil || c.Post(t.Context(), event()) != nil {
-		t.Fatal("a client without a ledger must be a quiet nil")
+		t.Fatal("a client without Annals must be a quiet nil")
 	}
 }
 
@@ -71,7 +71,7 @@ func TestClip(t *testing.T) {
 		t.Fatalf("an email in text is replaced: %q", ev.Action.Target.Title)
 	}
 	if err := ev.Validate("dispatch"); err != nil {
-		t.Fatalf("a clipped title passes the ledger: %v", err)
+		t.Fatalf("a clipped title passes Annals: %v", err)
 	}
 	long := strings.Repeat("é", MaxTitle)
 	got := Clip(long)

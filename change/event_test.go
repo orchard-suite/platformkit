@@ -174,3 +174,29 @@ func TestSightPath(t *testing.T) {
 		t.Error("a sight names its path")
 	}
 }
+
+// A judge checks its answer on its own, before any event carries it.
+func TestValidateRouteOnItsOwn(t *testing.T) {
+	people := Route{To: RoutePeople, Grants: []Grant{{Field: "team", Values: []string{"platform"}}}, Quorum: 1}
+	if err := ValidateRoute("route", people, []RouteReason{{Fence: FenceAsker}}); err != nil {
+		t.Fatalf("a route to people is refused: %v", err)
+	}
+	if Reason(ValidateRoute("route", Route{To: RoutePeople, Quorum: 1}, nil)) != "missing_grants" {
+		t.Error("a route to people names who may decide")
+	}
+	if Reason(ValidateRoute("route", Route{To: RouteNoOne, Quorum: 1}, nil)) != "bad_route" {
+		t.Error("a route of no one names no quorum")
+	}
+	if Reason(ValidateRoute("route", Route{To: RouteNoOne}, []RouteReason{{Fence: FenceUnknown}})) != "fence_ignored" {
+		t.Error("a fence never sends a change to no one")
+	}
+	if Reason(Draft{Route: people}.Validate("drafts[0]")) != "missing_pack" {
+		t.Error("a draft names its pack")
+	}
+	if err := (Judge{Name: "trellis", Version: "6.2.0", Pack: "acme-gate@1.0.0"}).Validate(); err != nil {
+		t.Fatalf("a judge is refused: %v", err)
+	}
+	if Reason((Judge{Name: "Trellis", Version: "6.2.0", Pack: "gate"}).Validate()) != "bad_slug" {
+		t.Error("a judge's name is a slug")
+	}
+}

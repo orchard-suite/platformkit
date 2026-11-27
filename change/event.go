@@ -220,16 +220,8 @@ func (e *Routed) Validate(_ *Kinds) error {
 		if e.Route.To != RoutePeople || !hasFence(e.Reasons, FenceJudgeDown) {
 			return refuse("missing_judge", "a route with no judge goes to people, by the judge_down fence")
 		}
-	} else {
-		if err := slug("judge.name", e.Judge.Name); err != nil {
-			return err
-		}
-		if err := plain("judge.version", e.Judge.Version, true); err != nil {
-			return err
-		}
-		if err := plain("judge.pack", e.Judge.Pack, true); err != nil {
-			return err
-		}
+	} else if err := e.Judge.Validate(); err != nil {
+		return err
 	}
 	if err := validateRoute("route", e.Route, e.Reasons); err != nil {
 		return err
@@ -238,15 +230,39 @@ func (e *Routed) Validate(_ *Kinds) error {
 		return refuse("too_many_drafts", "at most %d drafts", MaxDrafts)
 	}
 	for i, d := range e.Drafts {
-		name := fmt.Sprintf("drafts[%d]", i)
-		if err := plain(name+".pack", d.Pack, true); err != nil {
-			return err
-		}
-		if err := validateRoute(name+".route", d.Route, d.Reasons); err != nil {
+		if err := d.Validate(fmt.Sprintf("drafts[%d]", i)); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// ValidateRoute checks a route and its reasons on their own, as a judge
+// checks its answer before it gives it: a route of no one names no one, no
+// quorum, and no time; a route to people names who may decide and a quorum
+// of at least 1; and a fence never sends a change to no one. name is how a
+// refusal names the route.
+func ValidateRoute(name string, r Route, reasons []RouteReason) error {
+	return validateRoute(name, r, reasons)
+}
+
+// Validate checks a draft as a Routed event's drafts are checked.
+func (d Draft) Validate(name string) error {
+	if err := plain(name+".pack", d.Pack, true); err != nil {
+		return err
+	}
+	return validateRoute(name+".route", d.Route, d.Reasons)
+}
+
+// Validate checks who judged, as a Routed event's judge is checked.
+func (j Judge) Validate() error {
+	if err := slug("judge.name", j.Name); err != nil {
+		return err
+	}
+	if err := plain("judge.version", j.Version, true); err != nil {
+		return err
+	}
+	return plain("judge.pack", j.Pack, true)
 }
 
 func validateRoute(name string, r Route, reasons []RouteReason) error {

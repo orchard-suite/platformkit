@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.6.0](https://github.com/orchard-suite/platformkit/compare/v3.5.0...v3.6.0) (2026-11-27)
+
+### Features
+
+* **platformkit:** name the item a hub refused ([7baadf4](https://github.com/orchard-suite/platformkit/commit/7baadf48f55cc4263ef70eecf6ecf667a7cf4c7a))
+
 ## [3.5.0](https://github.com/orchard-suite/platformkit/compare/v3.4.0...v3.5.0) (2026-11-27)
 
 ### Features

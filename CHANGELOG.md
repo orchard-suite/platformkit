@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.0](https://github.com/orchard-suite/platformkit/compare/v3.6.0...v3.7.0) (2026-11-27)
+
+### Features
+
+* **platformkit:** read proof and records from annals ([a70f725](https://github.com/orchard-suite/platformkit/commit/a70f725165f821d7d1ec7de8dfee5786f5c5984e))
+* **platformkit:** check a judge's answer on its own ([067d7a8](https://github.com/orchard-suite/platformkit/commit/067d7a8890b7fbffaebd0b5730067696558592be))
+
 ## [3.6.0](https://github.com/orchard-suite/platformkit/compare/v3.5.0...v3.6.0) (2026-11-27)
 
 ### Features

@@ -261,6 +261,10 @@ func (a *Actor) validate(name string) error {
 	return nil
 }
 
+// Validate checks a reference read on its own, such as a thing a change
+// names outside a statement; name is how a refusal names the field.
+func (r Ref) Validate(name string) error { return r.validate(name) }
+
 func (r Ref) validate(name string) error {
 	if err := slug(name+".blueprint", r.Blueprint); err != nil {
 		return err

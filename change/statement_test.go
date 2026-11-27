@@ -79,3 +79,21 @@ func TestEstateKindValidates(t *testing.T) {
 		t.Error("an estate kind is unknown to the base set")
 	}
 }
+
+func TestRefsValidateAlone(t *testing.T) {
+	if err := (Ref{Blueprint: "sw_service", Key: "shop"}).Validate("things[0]"); err != nil {
+		t.Errorf("a good ref: %v", err)
+	}
+	if r := Reason((Ref{Blueprint: "SW Service", Key: "shop"}).Validate("things[0]")); r != "bad_slug" {
+		t.Errorf("a bad blueprint: %q", r)
+	}
+	if r := Reason((Ref{Blueprint: "sw_service", Key: "user@example.com"}).Validate("things[0]")); r != "email_in_name" {
+		t.Errorf("an address in a key: %q", r)
+	}
+	if err := (EventRef{Sender: "orrery", Key: "run-1.stated"}).Validate("record"); err != nil {
+		t.Errorf("a good event ref: %v", err)
+	}
+	if r := Reason((EventRef{Sender: "orrery"}).Validate("record")); r != "missing_record_key" {
+		t.Errorf("an event ref with no key: %q", r)
+	}
+}

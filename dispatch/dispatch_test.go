@@ -8,6 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/orchard-suite/platformkit/v3/change"
 )
 
 type seen struct {
@@ -117,7 +119,8 @@ func TestChangeHeartbeatOnCall(t *testing.T) {
 		}
 		_, _ = w.Write([]byte(`{}`))
 	})
-	if err := c.RecordChange(t.Context(), Change{Service: "shop", Title: "Release 1.2.3", URL: "https://forge.example.org/shop/commit/abc"}); err != nil {
+	if err := c.RecordChange(t.Context(), Change{Service: "shop", Title: "Release 1.2.3", URL: "https://forge.example.org/shop/commit/abc",
+		Things: []change.Ref{{Blueprint: "sw_service", Key: "shop"}}, Run: "https://forge.example.org/shop/runs/7", Record: &change.EventRef{Sender: "forge", Key: "run-7"}}); err != nil {
 		t.Fatal(err)
 	}
 	if err := c.Heartbeat(t.Context(), "slipway-shop", 5*time.Minute); err != nil {
@@ -128,7 +131,9 @@ func TestChangeHeartbeatOnCall(t *testing.T) {
 		t.Fatalf("%+v %v", on, err)
 	}
 	got := *calls
-	if got[0].path != "/v1/changes" || got[0].body["service"] != "shop" {
+	things, _ := got[0].body["things"].([]any)
+	record, _ := got[0].body["record"].(map[string]any)
+	if got[0].path != "/v1/changes" || got[0].body["service"] != "shop" || len(things) != 1 || got[0].body["run"] != "https://forge.example.org/shop/runs/7" || record["key"] != "run-7" {
 		t.Fatalf("%+v", got[0])
 	}
 	if got[1].path != "/v1/heartbeats/slipway-shop" || got[1].query != "interval=5m0s" {

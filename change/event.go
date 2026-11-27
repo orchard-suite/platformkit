@@ -51,6 +51,16 @@ type EventRef struct {
 
 func (h *Header) Head() *Header { return h }
 
+// Validate checks a reference to an event read on its own, such as the
+// record a change names outside its events; name is how a refusal names
+// the field.
+func (r EventRef) Validate(name string) error {
+	if err := slug(name+".sender", r.Sender); err != nil {
+		return err
+	}
+	return plain(name+".key", r.Key, true)
+}
+
 func (h *Header) validate(name string) error {
 	if h.Event == "" {
 		h.Event = name
@@ -79,10 +89,7 @@ func (h *Header) validate(name string) error {
 	if h.Of == nil {
 		return refuse("missing_of", "a %s event names the change.stated event it belongs to", name)
 	}
-	if err := slug("of.sender", h.Of.Sender); err != nil {
-		return err
-	}
-	if err := plain("of.key", h.Of.Key, true); err != nil {
+	if err := h.Of.Validate("of"); err != nil {
 		return err
 	}
 	if h.Of.Sender == h.Sender && h.Of.Key == h.Key {

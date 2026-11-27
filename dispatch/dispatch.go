@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/orchard-suite/platformkit/v3/change"
 	"github.com/orchard-suite/platformkit/v3/telemetry"
 )
 
@@ -113,14 +114,24 @@ type NewIncident struct {
 	Description string `json:"description,omitempty"`
 }
 
-// Change is a deploy or another change to a service.
+// Change is a deploy or another change to a service and the catalog
+// entities it touched.
 type Change struct {
-	Service string     `json:"service"`
+	Service string     `json:"service,omitempty"`
 	Title   string     `json:"title"`
 	Kind    string     `json:"kind,omitempty"`
 	URL     string     `json:"url,omitempty"`
 	By      string     `json:"by,omitempty"`
 	At      *time.Time `json:"at,omitempty"`
+	// Things are the catalog entities the change touched. A change names
+	// its service, its things, or both.
+	Things []change.Ref `json:"things,omitempty"`
+	// Run is the outside run that made the change, such as a pipeline
+	// run's URL.
+	Run string `json:"run,omitempty"`
+	// Record is the change's own record: its sender and the key of its
+	// change.stated event, when it has one.
+	Record *change.EventRef `json:"record,omitempty"`
 }
 
 // OnCall is one schedule and who it has on call now. Person is empty when

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.3.0](https://github.com/orchard-suite/platformkit/compare/v3.2.0...v3.3.0) (2026-11-27)
+
+### Features
+
+* **platformkit:** let a rule route a change alone ([b6a95d4](https://github.com/orchard-suite/platformkit/commit/b6a95d4b7d98ca22af562dff7b8709d71f468ed1))
+
 ## [3.2.0](https://github.com/orchard-suite/platformkit/compare/v3.1.0...v3.2.0) (2026-11-27)
 
 ### Features

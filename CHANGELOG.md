@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.2.0](https://github.com/orchard-suite/platformkit/compare/v3.1.0...v3.2.0) (2026-11-27)
+
+### Features
+
+* **platformkit:** add the change statement ([cd74ffe](https://github.com/orchard-suite/platformkit/commit/cd74ffe138b69ec771fcd8843d0afd6643173417))
+
 ## [3.1.0](https://github.com/orchard-suite/platformkit/compare/v3.0.0...v3.1.0) (2026-11-23)
 
 ### Features

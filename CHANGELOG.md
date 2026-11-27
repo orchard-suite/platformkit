@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.5.0](https://github.com/orchard-suite/platformkit/compare/v3.4.0...v3.5.0) (2026-11-27)
+
+### Features
+
+* **platformkit:** key dispatch changes to things ([8e0f8a7](https://github.com/orchard-suite/platformkit/commit/8e0f8a70ce34061fa5d176299540c22b71755a6d))
+
 ## [3.4.0](https://github.com/orchard-suite/platformkit/compare/v3.3.0...v3.4.0) (2026-11-27)
 
 ### Features

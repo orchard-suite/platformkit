@@ -3,6 +3,7 @@ package orrery
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -128,5 +129,26 @@ func TestPutAction(t *testing.T) {
 	}
 	if path != "PUT /v1/actions/build app" || got["title"] != "Build" {
 		t.Fatalf("%s %v", path, got)
+	}
+}
+
+func TestARefusalNamesTheBatchItem(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		switch r.URL.Path {
+		case "/item":
+			w.Write([]byte(`{"error":"events[1]: of.key names no change","index":1}`))
+		default:
+			w.Write([]byte(`{"error":"the body is not events"}`))
+		}
+	}))
+	defer srv.Close()
+	c := New(srv.URL, "tok")
+	var apiErr *APIError
+	if err := c.Call(context.Background(), "POST", "/item", map[string]any{}, nil); !errors.As(err, &apiErr) || apiErr.Index == nil || *apiErr.Index != 1 {
+		t.Errorf("the refused item's index: %v", err)
+	}
+	if err := c.Call(context.Background(), "POST", "/body", map[string]any{}, nil); !errors.As(err, &apiErr) || apiErr.Index != nil {
+		t.Errorf("a refusal that names no item: %v", err)
 	}
 }

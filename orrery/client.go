@@ -60,6 +60,10 @@ type APIError struct {
 	Status  int
 	Message string
 	Errors  []WriteError
+	// Index is the place in a batch of the item the hub refused, when its
+	// answer names one: the refusal is for that item's content, and sending
+	// it again will not help.
+	Index *int
 }
 
 func (e *APIError) Error() string {
@@ -289,10 +293,12 @@ func (c *Client) send(ctx context.Context, r request) (*response, error) {
 			var parsed struct {
 				Error  string       `json:"error"`
 				Errors []WriteError `json:"errors"`
+				Index  *int         `json:"index"`
 			}
 			if json.Unmarshal(body, &parsed) == nil && parsed.Error != "" {
 				apiErr.Message = parsed.Error
 				apiErr.Errors = parsed.Errors
+				apiErr.Index = parsed.Index
 			} else {
 				apiErr.Message = strings.TrimSpace(string(body))
 			}

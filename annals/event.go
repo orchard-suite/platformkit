@@ -18,22 +18,35 @@ import (
 // Event is one thing an actor did. ID and ReceivedAt are Annals'; a
 // sender fills the rest.
 type Event struct {
-	ID         string            `json:"id,omitempty"`
-	At         time.Time         `json:"at"`
-	ReceivedAt time.Time         `json:"received_at,omitzero"`
-	Source     string            `json:"source"`
-	EventKey   string            `json:"event_key,omitempty"`
-	Actor      Actor             `json:"actor"`
-	Agent      *Agent            `json:"agent,omitempty"`
-	Authority  *Authority        `json:"authority,omitempty"`
-	Action     Action            `json:"action"`
-	Change     *Change           `json:"change,omitempty"`
-	TraceID    string            `json:"trace_id,omitempty"`
-	Corrects   string            `json:"corrects,omitempty"`
-	Cause      string            `json:"cause,omitempty"`
-	Parties    []Party           `json:"parties,omitempty"`
-	Items      []Item            `json:"items,omitempty"`
-	Labels     map[string]string `json:"labels,omitempty"`
+	ID         string     `json:"id,omitempty"`
+	At         time.Time  `json:"at"`
+	ReceivedAt time.Time  `json:"received_at,omitzero"`
+	Source     string     `json:"source"`
+	EventKey   string     `json:"event_key,omitempty"`
+	Actor      Actor      `json:"actor"`
+	Agent      *Agent     `json:"agent,omitempty"`
+	Authority  *Authority `json:"authority,omitempty"`
+	Action     Action     `json:"action"`
+	Change     *Change    `json:"change,omitempty"`
+	TraceID    string     `json:"trace_id,omitempty"`
+	Corrects   string     `json:"corrects,omitempty"`
+	Cause      string     `json:"cause,omitempty"`
+	// CauseSource is the source of the event Cause names. Empty means the
+	// same source as this event.
+	CauseSource string            `json:"cause_source,omitempty"`
+	Parties     []Party           `json:"parties,omitempty"`
+	Items       []Item            `json:"items,omitempty"`
+	Effects     []Effect          `json:"effects,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+}
+
+// CauseFrom is the source of the event Cause names: CauseSource, or this
+// event's own source when it is empty.
+func (e *Event) CauseFrom() string {
+	if e.CauseSource != "" {
+		return e.CauseSource
+	}
+	return e.Source
 }
 
 type Actor struct {
@@ -101,6 +114,33 @@ type Item struct {
 	Hash   string `json:"hash,omitempty"`
 }
 
+// Effect is what a change did, or was predicted to do, to one live thing,
+// by kind: never the tool's verb, and never a value. A stated change
+// carries its predicted effects; an observed one carries what the watch
+// saw, each with a verdict.
+type Effect struct {
+	// Kind is an effect kind, such as stops or grants.
+	Kind    string  `json:"kind"`
+	Subject Subject `json:"subject"`
+	// Path is how the change reached the thing, such as in-place or swap.
+	Path string `json:"path"`
+	// Size is how much, in the kind's own unit, when the kind has one.
+	Size *int64 `json:"size,omitempty"`
+	// Undo is one of Undos: whether the old artifact puts it back.
+	Undo string `json:"undo,omitempty"`
+	// Claim is one of Claims: where a predicted effect came from.
+	Claim string `json:"claim,omitempty"`
+	// Verdict is one of Verdicts: what the watch saw.
+	Verdict string `json:"verdict,omitempty"`
+}
+
+// Subject is the catalog entity that feels an effect, by its blueprint
+// (its class) and its key.
+type Subject struct {
+	Blueprint string `json:"blueprint"`
+	Key       string `json:"key"`
+}
+
 type Change struct {
 	BeforeHash string `json:"before_hash,omitempty"`
 	AfterHash  string `json:"after_hash,omitempty"`
@@ -113,6 +153,11 @@ var (
 	Runtimes   = []string{"ion", "claude-code", "codex", "copilot", "other"}
 	Outcomes   = []string{"ok", "refused", "failed"}
 	PartyKinds = []string{"person", "group", "agent", "system", "anyone"}
+	Undos      = []string{"yes", "no", "partial"}
+	Claims     = []string{"writer", "estate", "model"}
+	// Verdicts are what a watch saw: it looked and nothing happened, it
+	// looked and the thing was hurt, or it could not look.
+	Verdicts = []string{"clean", "harm", "blind"}
 )
 
 // PersonKind is the target and party kind that names a person. What names
@@ -128,6 +173,7 @@ const (
 	MaxLabelLen = 64   // a label key or value
 	MaxParties  = 50   // parties per event
 	MaxItems    = 100  // items per event
+	MaxEffects  = 1000 // effects per event
 	MaxBatch    = 1000 // events in one POST
 )
 
@@ -190,7 +236,15 @@ func (e *Event) Validate(source string) error {
 	if err := short("cause", e.Cause, false); err != nil {
 		return err
 	}
-	if e.Cause != "" && e.Cause == e.EventKey {
+	if e.CauseSource != "" {
+		if e.Cause == "" {
+			return refuse("bad_cause_source", "cause_source names the source of a cause, so it needs cause")
+		}
+		if err := slug("cause_source", e.CauseSource); err != nil {
+			return err
+		}
+	}
+	if e.Cause != "" && e.Cause == e.EventKey && e.CauseFrom() == e.Source {
 		return refuse("bad_cause", "an event cannot cause itself")
 	}
 	if err := e.Actor.validate(); err != nil {
@@ -227,6 +281,14 @@ func (e *Event) Validate(source string) error {
 	}
 	for i := range e.Items {
 		if err := e.Items[i].validate(); err != nil {
+			return err
+		}
+	}
+	if len(e.Effects) > MaxEffects {
+		return refuse("too_many_effects", "at most %d effects", MaxEffects)
+	}
+	for i := range e.Effects {
+		if err := e.Effects[i].validate(); err != nil {
 			return err
 		}
 	}
@@ -285,6 +347,37 @@ func (it *Item) validate() error {
 		return err
 	}
 	return short("items.hash", it.Hash, false)
+}
+
+func (ef *Effect) validate() error {
+	if err := slug("effects.kind", ef.Kind); err != nil {
+		return err
+	}
+	if err := slug("effects.subject.blueprint", ef.Subject.Blueprint); err != nil {
+		return err
+	}
+	if err := short("effects.subject.key", ef.Subject.Key, true); err != nil {
+		return err
+	}
+	if err := noEmail("effects.subject.key", ef.Subject.Key); err != nil {
+		return err
+	}
+	if err := slug("effects.path", ef.Path); err != nil {
+		return err
+	}
+	if ef.Size != nil && *ef.Size < 0 {
+		return refuse("bad_size", "effects.size is never below zero")
+	}
+	if ef.Undo != "" && !oneOf(ef.Undo, Undos) {
+		return refuse("bad_undo", "effects.undo must be one of %s", strings.Join(Undos, ", "))
+	}
+	if ef.Claim != "" && !oneOf(ef.Claim, Claims) {
+		return refuse("bad_claim", "effects.claim must be one of %s", strings.Join(Claims, ", "))
+	}
+	if ef.Verdict != "" && !oneOf(ef.Verdict, Verdicts) {
+		return refuse("bad_verdict", "effects.verdict must be one of %s", strings.Join(Verdicts, ", "))
+	}
+	return nil
 }
 
 func (a *Actor) validate() error {

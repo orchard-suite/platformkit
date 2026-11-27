@@ -100,3 +100,90 @@ func TestPeopleOnlyInPersonFields(t *testing.T) {
 		t.Errorf("an anyone link names nobody: %v", err)
 	}
 }
+
+// A cause names an event by its source and key, so a record can be set off
+// by another sender's event.
+func TestCauseAcrossSources(t *testing.T) {
+	good := func() Event {
+		return Event{At: time.Now(), Source: "dispatch", EventKey: "k1", Actor: Actor{Kind: "system", ID: "watch"},
+			Action: Action{Verb: "change.observed", Target: Target{System: "orrery", Kind: "change", ID: "c1"}, Outcome: "ok"}}
+	}
+	ev := good()
+	ev.Cause, ev.CauseSource = "k1", "orrery"
+	if err := ev.Validate("dispatch"); err != nil {
+		t.Errorf("the same key from another source is another event: %v", err)
+	}
+	if ev.CauseFrom() != "orrery" {
+		t.Errorf("CauseFrom = %q, want orrery", ev.CauseFrom())
+	}
+	ev = good()
+	ev.Cause, ev.CauseSource = "k1", "dispatch"
+	if Reason(ev.Validate("dispatch")) != "bad_cause" {
+		t.Error("an event cannot cause itself, its source named or not")
+	}
+	ev = good()
+	ev.Cause = "k0"
+	if ev.CauseFrom() != "dispatch" {
+		t.Errorf("an empty cause_source is the event's own source, got %q", ev.CauseFrom())
+	}
+	ev = good()
+	ev.CauseSource = "orrery"
+	if Reason(ev.Validate("dispatch")) != "bad_cause_source" {
+		t.Error("cause_source needs a cause")
+	}
+	ev = good()
+	ev.Cause, ev.CauseSource = "k0", "Orrery"
+	if Reason(ev.Validate("dispatch")) != "bad_slug" {
+		t.Error("cause_source is a source, a lowercase slug")
+	}
+}
+
+// Effects are names and kinds only: what a change did to which thing, by
+// which path, never a value.
+func TestEffects(t *testing.T) {
+	size := int64(3)
+	good := func() Event {
+		return Event{At: time.Now(), Source: "orrery", EventKey: "s1", Actor: Actor{Kind: "agent", ID: "a"},
+			Action: Action{Verb: "change.stated", Target: Target{System: "orrery", Kind: "change", ID: "s1"}, Outcome: "ok"},
+			Effects: []Effect{
+				{Kind: "stops", Subject: Subject{Blueprint: "workload", Key: "acme-web"}, Path: "in-place", Undo: "yes", Claim: "estate"},
+				{Kind: "costs", Subject: Subject{Blueprint: "plan", Key: "acme-plan"}, Path: "in-place", Size: &size, Undo: "partial", Claim: "writer"},
+				{Kind: "stops", Subject: Subject{Blueprint: "workload", Key: "acme-api"}, Path: "swap", Verdict: "blind"},
+			}}
+	}
+	ev := good()
+	if err := ev.Validate("orrery"); err != nil {
+		t.Fatalf("stated and observed effects are good: %v", err)
+	}
+	neg := int64(-1)
+	cases := []struct {
+		name   string
+		mutate func(*Effect)
+		reason string
+	}{
+		{"no kind", func(e *Effect) { e.Kind = "" }, "missing_effects_kind"},
+		{"kind not a slug", func(e *Effect) { e.Kind = "Stops" }, "bad_slug"},
+		{"no blueprint", func(e *Effect) { e.Subject.Blueprint = "" }, "missing_effects_subject_blueprint"},
+		{"no key", func(e *Effect) { e.Subject.Key = "" }, "missing_effects_subject_key"},
+		{"email as a key", func(e *Effect) { e.Subject.Key = "owner@example.com" }, "email_in_text"},
+		{"key with a newline", func(e *Effect) { e.Subject.Key = "a\nb" }, "bad_text"},
+		{"no path", func(e *Effect) { e.Path = "" }, "missing_effects_path"},
+		{"path not a slug", func(e *Effect) { e.Path = "In Place" }, "bad_slug"},
+		{"negative size", func(e *Effect) { e.Size = &neg }, "bad_size"},
+		{"unknown undo", func(e *Effect) { e.Undo = "maybe" }, "bad_undo"},
+		{"unknown claim", func(e *Effect) { e.Claim = "guess" }, "bad_claim"},
+		{"unknown verdict", func(e *Effect) { e.Verdict = "fine" }, "bad_verdict"},
+	}
+	for _, tc := range cases {
+		ev := good()
+		tc.mutate(&ev.Effects[0])
+		if got := Reason(ev.Validate("orrery")); got != tc.reason {
+			t.Errorf("%s: reason %q, want %q", tc.name, got, tc.reason)
+		}
+	}
+	ev = good()
+	ev.Effects = make([]Effect, MaxEffects+1)
+	if Reason(ev.Validate("orrery")) != "too_many_effects" {
+		t.Error("at most MaxEffects effects")
+	}
+}

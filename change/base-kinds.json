@@ -1,0 +1,10 @@
+{
+  "kinds": [
+    {"name": "opens", "family": "exposure", "means": "More callers or networks can reach it."},
+    {"name": "grants", "family": "exposure", "means": "Someone can do more with it.", "unit": "principals"},
+    {"name": "loses", "family": "exposure", "means": "Data or a name goes for good."},
+    {"name": "costs", "family": "exposure", "means": "The bill moves, by the month, in the estate's currency's smallest unit.", "unit": "minor-units-per-month"},
+    {"name": "stops", "family": "disruption", "means": "It stops or restarts.", "unit": "copies", "watch": "30m"},
+    {"name": "cuts", "family": "disruption", "means": "A caller that works now can stop working.", "watch": "2h"}
+  ]
+}

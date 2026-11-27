@@ -1,0 +1,1 @@
+{"key": "k", "writer": {"name": "infra", "version": "1"}, "actor": {"kind": "system", "id": "ci"}, "artifact": {"kind": "plan", "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000002"}, "applier": "hub", "unknown": [{"part": "app_settings.DB_HOST=db.example.com", "why": "unnamed"}]}

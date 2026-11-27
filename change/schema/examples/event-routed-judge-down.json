@@ -1,0 +1,10 @@
+{
+  "event": "change.routed",
+  "sender": "orrery",
+  "key": "run-02-routed",
+  "at": "2026-11-26T20:02:00Z",
+  "of": {"sender": "orrery", "key": "run-02-stated"},
+  "digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+  "route": {"to": "people", "grants": [{"values": ["platform-admins"]}], "quorum": 1},
+  "reasons": [{"fence": "judge_down"}]
+}

@@ -1,0 +1,71 @@
+{
+  "event": "change.stated",
+  "sender": "orrery",
+  "key": "run-01-stated",
+  "at": "2026-11-26T20:01:04Z",
+  "digest": "sha256:631648276c5b93648131ddef01fe2882376e690c04284e39cb0a66c048381181",
+  "statement": {
+    "key": "plan-7f3a2c",
+    "writer": {
+      "name": "infra",
+      "version": "3.1.0"
+    },
+    "actor": {
+      "kind": "agent",
+      "id": "agent-1",
+      "on_behalf_of": "user@example.com"
+    },
+    "things": [
+      {
+        "blueprint": "workload",
+        "key": "acme-api-prod"
+      }
+    ],
+    "artifact": {
+      "kind": "plan",
+      "digest": "sha256:9f2c4b1e7a6d3c5b8e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d"
+    },
+    "applier": "hub",
+    "effects": [
+      {
+        "kind": "stops",
+        "subject": {
+          "blueprint": "workload",
+          "key": "acme-api-prod"
+        },
+        "path": "in-place",
+        "size": 2,
+        "undo": "yes",
+        "claim": {
+          "from": "writer",
+          "rule": "app-settings-restart",
+          "version": "azurerm 4.20"
+        }
+      },
+      {
+        "kind": "grants",
+        "subject": {
+          "blueprint": "workload",
+          "key": "acme-api-prod"
+        },
+        "path": "in-place",
+        "size": 1,
+        "undo": "yes",
+        "claim": {
+          "from": "writer",
+          "rule": "role-assignment"
+        }
+      }
+    ],
+    "unknown": [
+      {
+        "thing": {
+          "blueprint": "workload",
+          "key": "acme-api-prod"
+        },
+        "part": "site_config.cors",
+        "why": "unnamed"
+      }
+    ]
+  }
+}

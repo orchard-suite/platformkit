@@ -1,0 +1,11 @@
+{
+  "event": "change.ended",
+  "sender": "orrery",
+  "key": "run-04-ended",
+  "at": "2026-11-26T20:30:00Z",
+  "of": {"sender": "orrery", "key": "run-04-stated"},
+  "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+  "outcome": "refused",
+  "check": "differed",
+  "differs": ["artifact", "effects"]
+}

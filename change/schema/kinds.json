@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Effect kinds",
+  "description": "A file of effect kinds: the suite's base set, or an estate's own. An estate may give a base kind a new watch window and nothing else.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kinds"],
+  "properties": {
+    "kinds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "family", "means"],
+        "properties": {
+          "name": {"$ref": "statement.json#/$defs/slug"},
+          "family": {"enum": ["exposure", "disruption"]},
+          "means": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[^\\n\\r\\x00]*$"},
+          "unit": {"$ref": "statement.json#/$defs/slug"},
+          "watch": {"type": "string", "pattern": "^$|^([0-9]+(\\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$"}
+        }
+      }
+    }
+  }
+}

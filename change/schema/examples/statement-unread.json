@@ -1,0 +1,10 @@
+{
+  "key": "deploy-118",
+  "writer": {"name": "shipit", "version": "0.4.0"},
+  "actor": {"kind": "person", "id": "user@example.com"},
+  "artifact": {"kind": "image", "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+  "applier": "asker",
+  "unknown": [
+    {"part": "helm.values", "why": "unread"}
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "kinds": [
+    {"name": "sends", "family": "exposure", "means": "People outside receive something that cannot be called back.", "unit": "recipients"},
+    {"name": "halts", "family": "disruption", "means": "A line or a shift stops.", "watch": "4h"},
+    {"name": "stops", "family": "disruption", "means": "It stops or restarts.", "unit": "copies", "watch": "1h"}
+  ]
+}

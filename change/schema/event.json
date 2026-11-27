@@ -1,0 +1,532 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Change event",
+  "description": "One of the five change events: stated, routed, decided, ended, observed. Each later event names the change.stated event it belongs to by its sender and key. The Go validator in the platform kit's change package adds the rules a schema cannot state, among them that a stated event's digest is its statement's.",
+  "type": "object",
+  "required": [
+    "event",
+    "sender",
+    "key",
+    "at",
+    "digest"
+  ],
+  "properties": {
+    "event": {
+      "enum": [
+        "change.stated",
+        "change.routed",
+        "change.decided",
+        "change.ended",
+        "change.observed"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/stated"
+    },
+    {
+      "$ref": "#/$defs/routed"
+    },
+    {
+      "$ref": "#/$defs/decided"
+    },
+    {
+      "$ref": "#/$defs/ended"
+    },
+    {
+      "$ref": "#/$defs/observed"
+    }
+  ],
+  "$defs": {
+    "slug": {
+      "$ref": "statement.json#/$defs/slug"
+    },
+    "plain": {
+      "$ref": "statement.json#/$defs/plain"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "of": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sender",
+        "key"
+      ],
+      "properties": {
+        "sender": {
+          "$ref": "#/$defs/slug"
+        },
+        "key": {
+          "$ref": "#/$defs/plain"
+        }
+      }
+    },
+    "stated": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statement"
+      ],
+      "properties": {
+        "event": {
+          "const": "change.stated"
+        },
+        "sender": {
+          "$ref": "#/$defs/slug"
+        },
+        "key": {
+          "$ref": "#/$defs/plain"
+        },
+        "at": {
+          "$ref": "#/$defs/time"
+        },
+        "digest": {
+          "$ref": "statement.json#/$defs/digest"
+        },
+        "statement": {
+          "$ref": "statement.json"
+        }
+      }
+    },
+    "routed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "of",
+        "route"
+      ],
+      "properties": {
+        "event": {
+          "const": "change.routed"
+        },
+        "sender": {
+          "$ref": "#/$defs/slug"
+        },
+        "key": {
+          "$ref": "#/$defs/plain"
+        },
+        "at": {
+          "$ref": "#/$defs/time"
+        },
+        "digest": {
+          "$ref": "statement.json#/$defs/digest"
+        },
+        "of": {
+          "$ref": "#/$defs/of"
+        },
+        "judge": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "version",
+            "pack"
+          ],
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/slug"
+            },
+            "version": {
+              "$ref": "#/$defs/plain"
+            },
+            "pack": {
+              "$ref": "#/$defs/plain"
+            }
+          }
+        },
+        "route": {
+          "$ref": "#/$defs/route"
+        },
+        "reasons": {
+          "$ref": "#/$defs/reasons"
+        },
+        "drafts": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "pack",
+              "route"
+            ],
+            "properties": {
+              "pack": {
+                "$ref": "#/$defs/plain"
+              },
+              "route": {
+                "$ref": "#/$defs/route"
+              },
+              "reasons": {
+                "$ref": "#/$defs/reasons"
+              }
+            }
+          }
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "to"
+      ],
+      "properties": {
+        "to": {
+          "enum": [
+            "no_one",
+            "people"
+          ]
+        },
+        "grants": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "values"
+            ],
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/plain"
+              },
+              "field": {
+                "$ref": "#/$defs/plain"
+              },
+              "values": {
+                "type": "array",
+                "minItems": 1,
+                "maxItems": 50,
+                "items": {
+                  "$ref": "#/$defs/plain"
+                }
+              }
+            }
+          }
+        },
+        "quorum": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "by": {
+          "$ref": "#/$defs/time"
+        },
+        "start": {
+          "$ref": "#/$defs/time"
+        }
+      },
+      "if": {
+        "properties": {
+          "to": {
+            "const": "no_one"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "grants": false,
+          "quorum": false,
+          "by": false,
+          "start": false
+        }
+      },
+      "else": {
+        "required": [
+          "grants",
+          "quorum"
+        ],
+        "properties": {
+          "grants": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "maxItems": 2003,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "minProperties": 1,
+        "anyOf": [
+          {
+            "required": [
+              "effect"
+            ]
+          },
+          {
+            "required": [
+              "part"
+            ]
+          },
+          {
+            "required": [
+              "fence"
+            ]
+          }
+        ],
+        "properties": {
+          "effect": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "part": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "fence": {
+            "enum": [
+              "unknown",
+              "asker",
+              "judge_down"
+            ]
+          },
+          "rule": {
+            "$ref": "#/$defs/plain"
+          },
+          "proof": {
+            "enum": [
+              "unknown",
+              "claimed",
+              "rehearsed",
+              "measured"
+            ]
+          }
+        }
+      }
+    },
+    "decided": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "of",
+        "by",
+        "answer"
+      ],
+      "properties": {
+        "event": {
+          "const": "change.decided"
+        },
+        "sender": {
+          "$ref": "#/$defs/slug"
+        },
+        "key": {
+          "$ref": "#/$defs/plain"
+        },
+        "at": {
+          "$ref": "#/$defs/time"
+        },
+        "digest": {
+          "$ref": "statement.json#/$defs/digest"
+        },
+        "of": {
+          "$ref": "#/$defs/of"
+        },
+        "by": {
+          "$ref": "statement.json#/$defs/actor"
+        },
+        "answer": {
+          "enum": [
+            "yes",
+            "no"
+          ]
+        }
+      }
+    },
+    "ended": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "of",
+        "outcome",
+        "check"
+      ],
+      "properties": {
+        "event": {
+          "const": "change.ended"
+        },
+        "sender": {
+          "$ref": "#/$defs/slug"
+        },
+        "key": {
+          "$ref": "#/$defs/plain"
+        },
+        "at": {
+          "$ref": "#/$defs/time"
+        },
+        "digest": {
+          "$ref": "statement.json#/$defs/digest"
+        },
+        "of": {
+          "$ref": "#/$defs/of"
+        },
+        "outcome": {
+          "enum": [
+            "ok",
+            "failed",
+            "refused"
+          ]
+        },
+        "check": {
+          "enum": [
+            "matched",
+            "differed",
+            "unchecked"
+          ]
+        },
+        "differs": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "key",
+              "writer",
+              "actor",
+              "things",
+              "artifact",
+              "applier",
+              "effects",
+              "unknown"
+            ]
+          }
+        }
+      },
+      "if": {
+        "properties": {
+          "check": {
+            "const": "differed"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "differs"
+        ],
+        "properties": {
+          "outcome": {
+            "const": "refused"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "differs": false
+        }
+      }
+    },
+    "observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "of",
+        "watch",
+        "from",
+        "to"
+      ],
+      "properties": {
+        "event": {
+          "const": "change.observed"
+        },
+        "sender": {
+          "$ref": "#/$defs/slug"
+        },
+        "key": {
+          "$ref": "#/$defs/plain"
+        },
+        "at": {
+          "$ref": "#/$defs/time"
+        },
+        "digest": {
+          "$ref": "statement.json#/$defs/digest"
+        },
+        "of": {
+          "$ref": "#/$defs/of"
+        },
+        "watch": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "version"
+          ],
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/slug"
+            },
+            "version": {
+              "$ref": "#/$defs/plain"
+            }
+          }
+        },
+        "from": {
+          "$ref": "#/$defs/time"
+        },
+        "to": {
+          "$ref": "#/$defs/time"
+        },
+        "sights": {
+          "type": "array",
+          "maxItems": 2000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "subject",
+              "verdict"
+            ],
+            "properties": {
+              "kind": {
+                "$ref": "#/$defs/slug"
+              },
+              "subject": {
+                "$ref": "statement.json#/$defs/ref"
+              },
+              "verdict": {
+                "enum": [
+                  "clean",
+                  "harm",
+                  "blind"
+                ]
+              },
+              "signals": {
+                "type": "array",
+                "maxItems": 32,
+                "items": {
+                  "$ref": "#/$defs/plain"
+                }
+              }
+            }
+          }
+        },
+        "incidents": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "system",
+              "id"
+            ],
+            "properties": {
+              "system": {
+                "$ref": "#/$defs/slug"
+              },
+              "id": {
+                "$ref": "#/$defs/plain"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

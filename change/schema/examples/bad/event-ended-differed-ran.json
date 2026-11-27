@@ -1,0 +1,1 @@
+{"event": "change.ended", "sender": "orrery", "key": "e", "at": "2026-11-26T20:00:00Z", "of": {"sender": "orrery", "key": "s"}, "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555", "outcome": "ok", "check": "differed", "differs": ["effects"]}

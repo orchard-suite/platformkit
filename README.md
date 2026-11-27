@@ -1,7 +1,7 @@
 # platformkit
 
 The shared plumbing every platform app is built from, so a rule is written
-once and holds everywhere. A Go module of seven packages:
+once and holds everywhere. A Go module of eight packages:
 
 | Package | What it does |
 | --- | --- |
@@ -12,6 +12,7 @@ once and holds everywhere. A Go module of seven packages:
 | `annals` | Annals' event contract in Go (types, limits, `Validate`) and a client that validates before it posts. A nil client posts nothing. |
 | `dispatch` | The incident desk's client for a product: `Send` an event to people, groups, or chains, `DeclareKinds` so people can choose how each kind reaches them, `RecordChange`, `Heartbeat`, `OpenIncidents`, `OpenIncident`, and `OnCall`. A nil client sends and reads nothing. |
 | `device` | The device door for routes a device posts to. Checks the `Authorization: Device <JWS>` assertion a device signs with its own key: the chain to the estate's device authority for client authentication, validity, revocation by each certificate's CRL distribution point, the audience, method, address, body hash, and life, and a replay cache of `jti`. Names the device and its person from the certificate. `device/devicetest` mints an authority, device certificates, and revocation lists in memory, and signs assertions. |
+| `change` | The change statement, the suite's one shape for a change to a live thing: who asks, what it touches, the digest of the exact artifact, where it runs, and its predicted effects. `Validate` refuses a value, a secret, or an email outside a person field; `Digest` is the statement's identity (RFC 8785 over it, empty values left out); `Diff` names what differs when the applier recomputes it. The base effect kinds in two families (exposure: `opens`, `grants`, `loses`, `costs`; disruption: `stops`, `cuts`), and an estate's own kinds from a file (`LoadKinds`). The five change events (`Stated`, `Routed`, `Decided`, `Ended`, `Observed`) with `Decode`. `change/schema` is the same contract as JSON Schema for any other language, held to the Go validator by worked examples. |
 
 ## Use
 

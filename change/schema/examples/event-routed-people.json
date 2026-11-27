@@ -1,0 +1,23 @@
+{
+  "event": "change.routed",
+  "sender": "orrery",
+  "key": "run-01-routed",
+  "at": "2026-11-26T20:01:05Z",
+  "of": {"sender": "orrery", "key": "run-01-stated"},
+  "digest": "sha256:631648276c5b93648131ddef01fe2882376e690c04284e39cb0a66c048381181",
+  "judge": {"name": "trellis", "version": "2.4.0", "pack": "gate"},
+  "route": {
+    "to": "people",
+    "grants": [{"path": "owner", "field": "email", "values": ["user@example.com"]}],
+    "quorum": 1,
+    "by": "2026-11-27T20:01:05Z",
+    "start": "2026-11-27T04:00:00Z"
+  },
+  "reasons": [
+    {"effect": 0, "rule": "stops-in-prod", "proof": "claimed"},
+    {"part": 0, "fence": "unknown"}
+  ],
+  "drafts": [
+    {"pack": "gate-next", "route": {"to": "no_one"}, "reasons": [{"effect": 0, "rule": "stops-absorbed-by-swap", "proof": "measured"}]}
+  ]
+}

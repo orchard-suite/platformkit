@@ -1,0 +1,1 @@
+{"event": "change.routed", "sender": "orrery", "key": "r", "at": "2026-11-26T20:00:00Z", "of": {"sender": "orrery", "key": "s"}, "digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555", "judge": {"name": "trellis", "version": "1", "pack": "gate"}, "route": {"to": "no_one", "grants": [{"values": ["admins"]}]}, "reasons": [{"effect": 0}]}

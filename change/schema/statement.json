@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Change statement",
+  "description": "What one change to a live thing will do, stated before it runs. Names, kinds, and references only: never a value, a secret, or content. The Go validator in the platform kit's change package adds the rules a schema cannot state: no email address outside a person field, nothing that reads as a key or a token, an effect kind the estate registered, and a size only for a kind with a unit.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["key", "writer", "actor", "artifact", "applier"],
+  "anyOf": [
+    {"required": ["things"], "properties": {"things": {"minItems": 1}}},
+    {"required": ["unknown"], "properties": {"unknown": {"minItems": 1}}}
+  ],
+  "properties": {
+    "key": {"$ref": "#/$defs/plain"},
+    "writer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {"$ref": "#/$defs/slug"},
+        "version": {"$ref": "#/$defs/plain"}
+      }
+    },
+    "actor": {"$ref": "#/$defs/actor"},
+    "things": {"type": "array", "maxItems": 1000, "uniqueItems": true, "items": {"$ref": "#/$defs/ref"}},
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "digest"],
+      "properties": {
+        "kind": {"$ref": "#/$defs/slug"},
+        "digest": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "applier": {"enum": ["hub", "asker"]},
+    "effects": {"type": "array", "maxItems": 1000, "items": {"$ref": "#/$defs/effect"}},
+    "unknown": {"type": "array", "maxItems": 1000, "items": {"$ref": "#/$defs/unknown"}}
+  },
+  "$defs": {
+    "slug": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[a-z0-9][a-z0-9._-]*$"},
+    "plain": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^=\\n\\r\\x00]*$"},
+    "digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "id"],
+      "properties": {
+        "kind": {"enum": ["person", "agent", "system"]},
+        "id": {"$ref": "#/$defs/plain"},
+        "on_behalf_of": {"$ref": "#/$defs/plain"}
+      },
+      "if": {"properties": {"kind": {"const": "person"}}},
+      "then": {"not": {"required": ["on_behalf_of"]}}
+    },
+    "ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blueprint", "key"],
+      "properties": {
+        "blueprint": {"$ref": "#/$defs/slug"},
+        "key": {"$ref": "#/$defs/plain"}
+      }
+    },
+    "effect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "subject", "path", "undo", "claim"],
+      "properties": {
+        "kind": {"$ref": "#/$defs/slug"},
+        "subject": {"$ref": "#/$defs/ref"},
+        "path": {"$ref": "#/$defs/slug"},
+        "size": {"type": "integer", "minimum": 0},
+        "undo": {"enum": ["yes", "no", "partial"]},
+        "claim": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from"],
+          "properties": {
+            "from": {"enum": ["writer", "estate", "model"]},
+            "rule": {"$ref": "#/$defs/plain"},
+            "version": {"$ref": "#/$defs/plain"}
+          }
+        }
+      }
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["part", "why"],
+      "properties": {
+        "thing": {"$ref": "#/$defs/ref"},
+        "part": {"$ref": "#/$defs/plain"},
+        "why": {"enum": ["unread", "unnamed"]}
+      }
+    }
+  }
+}

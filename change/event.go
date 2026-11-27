@@ -136,7 +136,9 @@ type Grant struct {
 	Values []string `json:"values"`
 }
 
-// RouteReason is why the route came: an effect, an unknown part, or a fence.
+// RouteReason is why the route came: an effect, an unknown part, a fence,
+// or a rule about the change as a whole, such as a runner's own approval
+// rule before a judge answers for it.
 type RouteReason struct {
 	// Effect is the index of the statement's effect it is about.
 	Effect *int `json:"effect,omitempty"`
@@ -281,8 +283,8 @@ func validateRoute(name string, r Route, reasons []RouteReason) error {
 	}
 	for i, re := range reasons {
 		rn := fmt.Sprintf("reasons[%d]", i)
-		if re.Effect == nil && re.Part == nil && re.Fence == "" {
-			return refuse("empty_reason", "%s names an effect, an unknown part, or a fence", rn)
+		if re.Effect == nil && re.Part == nil && re.Fence == "" && re.Rule == "" {
+			return refuse("empty_reason", "%s names an effect, an unknown part, a fence, or a rule", rn)
 		}
 		if (re.Effect != nil && *re.Effect < 0) || (re.Part != nil && *re.Part < 0) {
 			return refuse("bad_reason", "%s: an index is never below zero", rn)
@@ -411,10 +413,13 @@ type Watcher struct {
 	Version string `json:"version"`
 }
 
-// Sight is what the watch saw for one effect kind on one subject.
+// Sight is what the watch saw for one effect kind on one subject, by the
+// path the change took to it. Proof is counted by kind, the subject's
+// class, and the path.
 type Sight struct {
 	Kind    string `json:"kind"`
 	Subject Ref    `json:"subject"`
+	Path    string `json:"path"`
 	// Verdict is VerdictClean, VerdictHarm, or VerdictBlind.
 	Verdict string `json:"verdict"`
 	// Signals names the signals it read, never their values.
@@ -467,6 +472,9 @@ func (e *Observed) Validate(kinds *Kinds) error {
 			return refuse("unknown_kind", "%s.kind %q is not a registered effect kind", name, s.Kind)
 		}
 		if err := s.Subject.validate(name + ".subject"); err != nil {
+			return err
+		}
+		if err := slug(name+".path", s.Path); err != nil {
 			return err
 		}
 		if !oneOf(s.Verdict, verdicts) {

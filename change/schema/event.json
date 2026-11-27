@@ -269,6 +269,11 @@
             "required": [
               "fence"
             ]
+          },
+          {
+            "required": [
+              "rule"
+            ]
           }
         ],
         "properties": {
@@ -480,6 +485,7 @@
             "required": [
               "kind",
               "subject",
+              "path",
               "verdict"
             ],
             "properties": {
@@ -488,6 +494,9 @@
               },
               "subject": {
                 "$ref": "statement.json#/$defs/ref"
+              },
+              "path": {
+                "$ref": "#/$defs/slug"
               },
               "verdict": {
                 "enum": [

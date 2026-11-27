@@ -68,7 +68,7 @@ func TestFences(t *testing.T) {
 		{"missing_judge", Routed{Header: head(true), Route: Route{To: RouteNoOne}, Reasons: []RouteReason{{Effect: &zero}}}},
 		{"missing_judge", Routed{Header: head(true), Route: people, Reasons: []RouteReason{{Effect: &zero}}}},
 		{"bad_quorum", Routed{Header: head(true), Judge: judge, Route: Route{To: RoutePeople, Grants: people.Grants}}},
-		{"empty_reason", Routed{Header: head(true), Judge: judge, Route: people, Reasons: []RouteReason{{Rule: "r"}}}},
+		{"empty_reason", Routed{Header: head(true), Judge: judge, Route: people, Reasons: []RouteReason{{Proof: ProofClaimed}}}},
 		{"email_in_name", Routed{Header: head(true), Judge: judge, Route: people, Reasons: []RouteReason{{Effect: &zero, Rule: "ask user@example.com"}}}},
 	}
 	for _, c := range cases {
@@ -103,7 +103,7 @@ func TestEndedCheck(t *testing.T) {
 func TestObserved(t *testing.T) {
 	now := time.Now()
 	e := &Observed{Header: head(true), Watch: Watcher{Name: "dispatch", Version: "1"}, From: now, To: now.Add(time.Minute),
-		Sights: []Sight{{Kind: "stops", Subject: Ref{Blueprint: "workload", Key: "a"}, Verdict: VerdictBlind}}}
+		Sights: []Sight{{Kind: "stops", Subject: Ref{Blueprint: "workload", Key: "a"}, Path: PathInPlace, Verdict: VerdictBlind}}}
 	if err := e.Validate(nil); err != nil {
 		t.Fatalf("a good observation is refused: %v", err)
 	}
@@ -162,5 +162,15 @@ func TestBaseKindsHold(t *testing.T) {
 	}
 	if _, err := LoadKinds(strings.NewReader(`{"kinds":[{"name":"sends","family":"exposure","means":"x"},{"name":"sends","family":"exposure","means":"y"}]}`)); Reason(err) != "duplicate_kind" {
 		t.Errorf("a file names a kind once: %v", err)
+	}
+}
+
+// A sight says the path the change took, so proof counts by it.
+func TestSightPath(t *testing.T) {
+	now := time.Now()
+	e := &Observed{Header: head(true), Watch: Watcher{Name: "dispatch", Version: "1"}, From: now, To: now,
+		Sights: []Sight{{Kind: "stops", Subject: Ref{Blueprint: "workload", Key: "a"}, Verdict: VerdictClean}}}
+	if Reason(e.Validate(nil)) != "missing_path" {
+		t.Error("a sight names its path")
 	}
 }

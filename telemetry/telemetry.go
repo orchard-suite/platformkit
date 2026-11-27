@@ -139,8 +139,17 @@ func Handler(h http.Handler, port string) http.Handler {
 	return otelhttp.NewHandler(h, port)
 }
 
+// IdlePerHost is how many idle connections a Client keeps to each host. Go's
+// default keeps two, so a caller that runs more reads at once than that
+// opens and drops a connection for every read past two, and under load runs
+// out of local ports.
+const IdlePerHost = 64
+
 // Client is an HTTP client whose every call is a client span that sends
-// traceparent.
+// traceparent. It keeps IdlePerHost idle connections to each host, so
+// parallel calls reuse them.
 func Client(timeout time.Duration) *http.Client {
-	return &http.Client{Timeout: timeout, Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.MaxIdleConnsPerHost = IdlePerHost
+	return &http.Client{Timeout: timeout, Transport: otelhttp.NewTransport(t)}
 }

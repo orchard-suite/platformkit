@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.8.0](https://github.com/orchard-suite/platformkit/compare/v3.7.1...v3.8.0) (2026-11-28)
+
+### Features
+
+* **platformkit:** annals keeps whole statements ([cdb85b8](https://github.com/orchard-suite/platformkit/commit/cdb85b852800070de5e4f8641c913eb7b1f39b12))
+
 ## [3.7.1](https://github.com/orchard-suite/platformkit/compare/v3.7.0...v3.7.1) (2026-11-28)
 
 ### Bug Fixes

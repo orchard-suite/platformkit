@@ -152,14 +152,17 @@ type Subject struct {
 }
 
 // Statement is what a change.stated record keeps of its statement that no
-// other field holds: the writer's own key for the change, the writer, the
-// exact artifact that will run, and the parts the writer could not name an
-// effect for. Its parts are the change package's own shapes, held to its
-// rules. With the actor, the catalog items, the effects, and the applier
-// label, it is the whole statement (StatementOf).
+// other field holds whole: the writer's own key for the change, the writer,
+// every thing it touches, the exact artifact that will run, and the parts
+// the writer could not name an effect for. Its parts are the change
+// package's own shapes, held to its rules and limits. Things are here in
+// full because items hold at most MaxItems; the record's items are the
+// first of them. With the actor, the effects, and the applier label, it is
+// the whole statement (StatementOf).
 type Statement struct {
 	Key      string           `json:"key"`
 	Writer   change.Writer    `json:"writer"`
+	Things   []change.Ref     `json:"things,omitempty"`
 	Artifact change.Artifact  `json:"artifact"`
 	Unknown  []change.Unknown `json:"unknown,omitempty"`
 }
@@ -197,6 +200,7 @@ const (
 	MaxParties  = 50   // parties per event
 	MaxItems    = 100  // items per event
 	MaxEffects  = 1000 // effects per event
+	MaxThings   = 1000 // things per statement
 	MaxUnknown  = 1000 // unknown parts per statement
 	MaxBatch    = 1000 // events in one POST
 )
@@ -421,6 +425,19 @@ func (s *Statement) validate() error {
 	}
 	if err := kit(s.Writer.Validate("statement.writer")); err != nil {
 		return err
+	}
+	if len(s.Things) > MaxThings {
+		return refuse("too_many_things", "at most %d things", MaxThings)
+	}
+	seen := make(map[change.Ref]bool, len(s.Things))
+	for i, t := range s.Things {
+		if err := kit(t.Validate(fmt.Sprintf("statement.things[%d]", i))); err != nil {
+			return err
+		}
+		if seen[t] {
+			return refuse("duplicate_thing", "statement.things names %s:%s twice", t.Blueprint, t.Key)
+		}
+		seen[t] = true
 	}
 	if err := kit(s.Artifact.Validate("statement.artifact")); err != nil {
 		return err

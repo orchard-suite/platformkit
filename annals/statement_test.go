@@ -3,6 +3,7 @@ package annals
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"reflect"
 	"strings"
@@ -20,10 +21,10 @@ func record(e *change.Stated) Event {
 		Actor:     Actor{Kind: s.Actor.Kind, ID: s.Actor.ID, OnBehalfOf: s.Actor.OnBehalfOf},
 		Action:    Action{Verb: change.EventStated, Target: Target{System: "orrery", Kind: "change", ID: e.Key}, Outcome: "ok"},
 		Change:    &Change{AfterHash: e.Digest},
-		Statement: &Statement{Key: s.Key, Writer: s.Writer, Artifact: s.Artifact, Unknown: s.Unknown},
+		Statement: &Statement{Key: s.Key, Writer: s.Writer, Things: s.Things, Artifact: s.Artifact, Unknown: s.Unknown},
 		Labels:    map[string]string{"applier": s.Applier, "writer": s.Writer.Name},
 	}
-	for _, t := range s.Things {
+	for _, t := range s.Things[:min(len(s.Things), MaxItems)] {
 		ev.Items = append(ev.Items, Item{System: "catalog", Kind: t.Blueprint, ID: t.Key})
 	}
 	for _, ef := range s.Effects {
@@ -81,6 +82,48 @@ func TestStatedRecordKeepsTheWholeStatement(t *testing.T) {
 	}
 }
 
+// A statement of more things than an event holds items keeps every one in
+// its statement part; the items are the first MaxItems, for the index.
+func TestStatedRecordKeepsEveryThing(t *testing.T) {
+	e := workedStated(t)
+	for i := len(e.Statement.Things); i < MaxThings; i++ {
+		e.Statement.Things = append(e.Statement.Things, change.Ref{Blueprint: "workload", Key: fmt.Sprintf("acme-web-%d", i)})
+	}
+	d, err := e.Statement.Digest()
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.Digest = d
+	if err := e.Validate(nil); err != nil {
+		t.Fatal(err)
+	}
+	ev := record(e)
+	if err := ev.Validate(e.Sender); err != nil {
+		t.Fatalf("the record is refused: %v", err)
+	}
+	if len(ev.Items) != MaxItems {
+		t.Fatalf("items %d, want the first %d", len(ev.Items), MaxItems)
+	}
+	got := ev.StatementOf()
+	if len(got.Things) != MaxThings || !reflect.DeepEqual(got, e.Statement) {
+		t.Fatalf("rebuilt %d things, want %d", len(got.Things), MaxThings)
+	}
+	if d, err := got.Digest(); err != nil || d != e.Digest {
+		t.Errorf("rebuilt digest %s (%v), want %s", d, err, e.Digest)
+	}
+}
+
+// A record whose statement part holds no things takes them from its
+// catalog items, as a record stored before things moved there does.
+func TestStatedRecordThingsFromItems(t *testing.T) {
+	e := workedStated(t)
+	ev := record(e)
+	ev.Statement.Things = nil
+	if got := ev.StatementOf(); !reflect.DeepEqual(got.Things, e.Statement.Things) {
+		t.Errorf("things %+v, want %+v", got.Things, e.Statement.Things)
+	}
+}
+
 // A record stored before events had a statement part still reads, with
 // its writer's name from its label and nothing else of the statement.
 func TestStatedRecordStoredBefore(t *testing.T) {
@@ -134,6 +177,16 @@ func TestStatementRefusals(t *testing.T) {
 		{"email_in_name", func(ev *Event) { ev.Effects[0].ClaimRule = "ask user@example.com" }},
 		{"value_in_name", func(ev *Event) { ev.Effects[0].ClaimVersion = "azurerm=4.20" }},
 		{"missing_effects_claim", func(ev *Event) { ev.Effects[0].Claim = "" }},
+		{"bad_slug", func(ev *Event) { ev.Statement.Things[0].Blueprint = "Workload" }},
+		{"missing_key", func(ev *Event) { ev.Statement.Things[0].Key = "" }},
+		{"email_in_name", func(ev *Event) { ev.Statement.Things[0].Key = "owner@example.com" }},
+		{"duplicate_thing", func(ev *Event) { ev.Statement.Things = append(ev.Statement.Things, ev.Statement.Things[0]) }},
+		{"too_many_things", func(ev *Event) {
+			ev.Statement.Things = make([]change.Ref, MaxThings+1)
+			for i := range ev.Statement.Things {
+				ev.Statement.Things[i] = change.Ref{Blueprint: "workload", Key: fmt.Sprintf("acme-%d", i)}
+			}
+		}},
 	}
 	for _, tc := range cases {
 		ev := record(workedStated(t))

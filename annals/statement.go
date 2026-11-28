@@ -3,11 +3,12 @@ package annals
 import "github.com/orchard-suite/platformkit/v3/change"
 
 // StatementOf rebuilds the statement a change.stated record keeps, as
-// Annals' docs/event.md maps one onto an event: the actor, each catalog
-// item as a thing, the effects with their claims, the applier label, and
-// the statement part. A record stored before events had a statement part
-// has none of its key, writer version, artifact, claim rules, or unknown
-// parts; its writer's name is its writer label.
+// Annals' docs/event.md maps one onto an event: the actor, the effects with
+// their claims, the applier label, and the statement part, things and all.
+// A record stored before its statement part held things has each catalog
+// item as a thing; one stored before events had a statement part has none
+// of its key, writer version, artifact, claim rules, or unknown parts, and
+// its writer's name is its writer label.
 func (e *Event) StatementOf() change.Statement {
 	st := change.Statement{
 		Writer:  change.Writer{Name: e.Labels["writer"]},
@@ -16,11 +17,14 @@ func (e *Event) StatementOf() change.Statement {
 	}
 	if s := e.Statement; s != nil {
 		st.Key, st.Writer, st.Artifact = s.Key, s.Writer, s.Artifact
+		st.Things = append([]change.Ref(nil), s.Things...)
 		st.Unknown = append([]change.Unknown(nil), s.Unknown...)
 	}
-	for _, it := range e.Items {
-		if it.System == "catalog" {
-			st.Things = append(st.Things, change.Ref{Blueprint: it.Kind, Key: it.ID})
+	if len(st.Things) == 0 {
+		for _, it := range e.Items {
+			if it.System == "catalog" {
+				st.Things = append(st.Things, change.Ref{Blueprint: it.Kind, Key: it.ID})
+			}
 		}
 	}
 	for _, ef := range e.Effects {

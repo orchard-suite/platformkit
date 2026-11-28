@@ -13,6 +13,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/orchard-suite/platformkit/v3/change"
 )
 
 // Event is one thing an actor did. ID and ReceivedAt are Annals'; a
@@ -33,11 +35,14 @@ type Event struct {
 	Cause      string     `json:"cause,omitempty"`
 	// CauseSource is the source of the event Cause names. Empty means the
 	// same source as this event.
-	CauseSource string            `json:"cause_source,omitempty"`
-	Parties     []Party           `json:"parties,omitempty"`
-	Items       []Item            `json:"items,omitempty"`
-	Effects     []Effect          `json:"effects,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
+	CauseSource string   `json:"cause_source,omitempty"`
+	Parties     []Party  `json:"parties,omitempty"`
+	Items       []Item   `json:"items,omitempty"`
+	Effects     []Effect `json:"effects,omitempty"`
+	// Statement is what a change.stated record keeps of its statement
+	// beyond the fields every event has.
+	Statement *Statement        `json:"statement,omitempty"`
+	Labels    map[string]string `json:"labels,omitempty"`
 }
 
 // CauseFrom is the source of the event Cause names: CauseSource, or this
@@ -130,6 +135,11 @@ type Effect struct {
 	Undo string `json:"undo,omitempty"`
 	// Claim is one of Claims: where a predicted effect came from.
 	Claim string `json:"claim,omitempty"`
+	// ClaimRule names the row of the table that predicted it, and
+	// ClaimVersion the provider version the prediction is true for. Each
+	// needs a Claim.
+	ClaimRule    string `json:"claim_rule,omitempty"`
+	ClaimVersion string `json:"claim_version,omitempty"`
 	// Verdict is one of Verdicts: what the watch saw.
 	Verdict string `json:"verdict,omitempty"`
 }
@@ -139,6 +149,19 @@ type Effect struct {
 type Subject struct {
 	Blueprint string `json:"blueprint"`
 	Key       string `json:"key"`
+}
+
+// Statement is what a change.stated record keeps of its statement that no
+// other field holds: the writer's own key for the change, the writer, the
+// exact artifact that will run, and the parts the writer could not name an
+// effect for. Its parts are the change package's own shapes, held to its
+// rules. With the actor, the catalog items, the effects, and the applier
+// label, it is the whole statement (StatementOf).
+type Statement struct {
+	Key      string           `json:"key"`
+	Writer   change.Writer    `json:"writer"`
+	Artifact change.Artifact  `json:"artifact"`
+	Unknown  []change.Unknown `json:"unknown,omitempty"`
 }
 
 type Change struct {
@@ -174,6 +197,7 @@ const (
 	MaxParties  = 50   // parties per event
 	MaxItems    = 100  // items per event
 	MaxEffects  = 1000 // effects per event
+	MaxUnknown  = 1000 // unknown parts per statement
 	MaxBatch    = 1000 // events in one POST
 )
 
@@ -292,6 +316,11 @@ func (e *Event) Validate(source string) error {
 			return err
 		}
 	}
+	if e.Statement != nil {
+		if err := e.Statement.validate(); err != nil {
+			return err
+		}
+	}
 	if len(e.Labels) > MaxLabels {
 		return refuse("too_many_labels", "at most %d labels", MaxLabels)
 	}
@@ -377,7 +406,44 @@ func (ef *Effect) validate() error {
 	if ef.Verdict != "" && !oneOf(ef.Verdict, Verdicts) {
 		return refuse("bad_verdict", "effects.verdict must be one of %s", strings.Join(Verdicts, ", "))
 	}
+	if (ef.ClaimRule != "" || ef.ClaimVersion != "") && ef.Claim == "" {
+		return refuse("missing_effects_claim", "a claim's rule or version needs effects.claim")
+	}
+	if err := kit(change.Plain("effects.claim_rule", ef.ClaimRule, false)); err != nil {
+		return err
+	}
+	return kit(change.Plain("effects.claim_version", ef.ClaimVersion, false))
+}
+
+func (s *Statement) validate() error {
+	if err := kit(change.Plain("statement.key", s.Key, true)); err != nil {
+		return err
+	}
+	if err := kit(s.Writer.Validate("statement.writer")); err != nil {
+		return err
+	}
+	if err := kit(s.Artifact.Validate("statement.artifact")); err != nil {
+		return err
+	}
+	if len(s.Unknown) > MaxUnknown {
+		return refuse("too_many_unknown", "at most %d unknown parts", MaxUnknown)
+	}
+	for i, u := range s.Unknown {
+		if err := kit(u.Validate(fmt.Sprintf("statement.unknown[%d]", i))); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+// kit makes a refusal of the change package one of Annals', with the same
+// reason.
+func kit(err error) error {
+	var inv *change.ErrInvalid
+	if errors.As(err, &inv) {
+		return &ErrInvalid{Reason: inv.Reason, Detail: inv.Detail}
+	}
+	return err
 }
 
 func (a *Actor) validate() error {

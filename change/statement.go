@@ -192,10 +192,7 @@ func (s *Statement) Validate(kinds *Kinds) error {
 	if err := plain("key", s.Key, true); err != nil {
 		return err
 	}
-	if err := slug("writer.name", s.Writer.Name); err != nil {
-		return err
-	}
-	if err := plain("writer.version", s.Writer.Version, true); err != nil {
+	if err := s.Writer.Validate("writer"); err != nil {
 		return err
 	}
 	if err := s.Actor.validate("actor"); err != nil {
@@ -217,10 +214,7 @@ func (s *Statement) Validate(kinds *Kinds) error {
 		}
 		seen[t] = true
 	}
-	if err := slug("artifact.kind", s.Artifact.Kind); err != nil {
-		return err
-	}
-	if err := digest("artifact.digest", s.Artifact.Digest); err != nil {
+	if err := s.Artifact.Validate("artifact"); err != nil {
 		return err
 	}
 	if !oneOf(s.Applier, appliers) {
@@ -271,6 +265,33 @@ func (r Ref) validate(name string) error {
 	}
 	return plain(name+".key", r.Key, true)
 }
+
+// Validate checks a writer read on its own, such as one a record keeps
+// outside a statement; name is how a refusal names the field.
+func (w Writer) Validate(name string) error {
+	if err := slug(name+".name", w.Name); err != nil {
+		return err
+	}
+	return plain(name+".version", w.Version, true)
+}
+
+// Validate checks an artifact read on its own; name is how a refusal
+// names the field.
+func (a Artifact) Validate(name string) error {
+	if err := slug(name+".kind", a.Kind); err != nil {
+		return err
+	}
+	return digest(name+".digest", a.Digest)
+}
+
+// Validate checks an unknown part read on its own; name is how a refusal
+// names the field.
+func (u Unknown) Validate(name string) error { return u.validate(name) }
+
+// Plain checks a name, a key, or a version read outside a statement, by
+// the rule a statement holds its own to; name is how a refusal names the
+// field.
+func Plain(name, v string, required bool) error { return plain(name, v, required) }
 
 func (e *Effect) validate(name string, kinds *Kinds) error {
 	k, ok := kinds.Get(e.Kind)

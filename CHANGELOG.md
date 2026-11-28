@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.9.0](https://github.com/orchard-suite/platformkit/compare/v3.8.0...v3.9.0) (2026-11-28)
+
+### Features
+
+* **platformkit:** keep every thing in a statement ([a556300](https://github.com/orchard-suite/platformkit/commit/a55630083495fac3191161cec6ca88ed2272d222))
+
 ## [3.8.0](https://github.com/orchard-suite/platformkit/compare/v3.7.1...v3.8.0) (2026-11-28)
 
 ### Features

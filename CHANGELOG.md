@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.7.1](https://github.com/orchard-suite/platformkit/compare/v3.7.0...v3.7.1) (2026-11-28)
+
+### Bug Fixes
+
+* **platformkit:** reuse connections for parallel calls ([e9748e2](https://github.com/orchard-suite/platformkit/commit/e9748e27bb6c09854816420f8f947dafaf9c3e0a))
+
 ## [3.7.0](https://github.com/orchard-suite/platformkit/compare/v3.6.0...v3.7.0) (2026-11-27)
 
 ### Features
